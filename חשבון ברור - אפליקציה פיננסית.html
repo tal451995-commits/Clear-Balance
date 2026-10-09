@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>חשבון ברור - ניהול פיננסי חכם</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts - Assistant -->
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sage: {
+                            50: '#f4f7f5',
+                            100: '#e3ebe5',
+                            500: '#5a7863',
+                            600: '#4a6b57',
+                            700: '#3b5243',
+                            800: '#2d3f33',
+                        },
+                        cream: '#fcfbf7',
+                        cardBg: '#ffffff',
+                    },
+                    fontFamily: {
+                        sans: ['Assistant', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            font-family: 'Assistant', sans-serif;
+            padding-bottom: 80px;
+        }
+        @media (min-width: 768px) {
+            body { padding-bottom: 0; }
+        }
+        .sidebar-item.active {
+            background-color: #e3ebe5;
+            color: #2d3f33;
+            font-weight: 700;
+            border-right: 4px solid #4a6b57;
+        }
+        .tab-item.active {
+            color: #4a6b57;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 py-3 flex justify-between items-center shadow-sm">
+        <div class="flex items-center space-x-3 space-x-reverse">
+            <div class="bg-sage-600 text-white font-extrabold text-xl px-3 py-1 rounded-xl shadow-sm">חב</div>
+            <h1 class="text-xl font-bold tracking-tight text-slate-800">חשבון <span class="text-sage-600">ברור</span></h1>
+        </div>
+        <div class="flex items-center space-x-2 space-x-reverse">
+            <span class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-emerald-200">גרסה פעילה</span>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row min-h-[calc(100vh-60px)]">
+
+        <!-- Sidebar for Desktop -->
+        <aside class="w-full md:w-64 bg-white border-l border-slate-200 hidden md:block shrink-0">
+            <div class="p-4">
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">תפריט ראשי</p>
+                <nav class="space-y-1">
+                    <button onclick="switchView('dashboard')" id="nav-dashboard" class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition active">
+                        <span>📊</span> דשבורד וסקירה
+                    </button>
+                    <button onclick="switchView('accounts')" id="nav-accounts" class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition">
+                        <span>💳</span> חשבונות ויתרות
+                    </button>
+                    <button onclick="switchView('transactions')" id="nav-transactions" class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition">
+                        <span>📝</span> תנועות ותקציב
+                    </button>
+                    <button onclick="switchView('loans')" id="nav-loans" class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition">
+                        <span>🤝</span> הלוואות וחובות
+                    </button>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 p-4 md:p-6 overflow-y-auto">
+
+            <!-- DASHBOARD VIEW -->
+            <section id="view-dashboard" class="space-y-6">
+                <!-- Summary Cards Row -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs font-medium text-slate-500">יתרה נזילה בחשבונות</span>
+                        <div class="text-xl md:text-2xl font-extrabold text-slate-900 mt-1" id="dash-liquid-balance">₪0</div>
+                        <span class="text-[10px] text-emerald-600 font-semibold">בפועל בחשבונות</span>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs font-medium text-slate-500">הכנסות החודש</span>
+                        <div class="text-xl md:text-2xl font-extrabold text-emerald-600 mt-1" id="dash-income">₪0</div>
+                        <span class="text-[10px] text-slate-400">התקבלו בפועל</span>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs font-medium text-slate-500">הוצאות החודש</span>
+                        <div class="text-xl md:text-2xl font-extrabold text-rose-600 mt-1" id="dash-expenses">₪0</div>
+                        <span class="text-[10px] text-slate-400">שולמו בפועל</span>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs font-medium text-slate-500">תחזית לסוף חודש</span>
+                        <div class="text-xl md:text-2xl font-extrabold text-sage-600 mt-1" id="dash-forecast">₪0</div>
+                        <span class="text-[10px] text-slate-400">יתרה + צפויים</span>
+                    </div>
+                </div>
+
+                <!-- Secondary Metrics -->
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs font-medium text-slate-500">חייבים לי (נכס)</span>
+                        <div class="text-lg font-bold text-emerald-700 mt-1" id="dash-lender-total">₪0</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <span class="text-xs font-medium text-slate-500">אני חייב (התחייבות)</span>
+                        <div class="text-lg font-bold text-amber-600 mt-1" id="dash-borrower-total">₪0</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm col-span-2 md:col-span-1">
+                        <span class="text-xs font-medium text-slate-500">כסף פנוי משוער</span>
+                        <div class="text-lg font-bold text-indigo-600 mt-1" id="dash-free-money">₪0</div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-700 mb-4">תזרים חודשי (הכנסות מול הוצאות)</h3>
+                        <canvas id="chartFlow" class="max-h-60"></canvas>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-700 mb-4">הוצאות לפי קטגוריה</h3>
+                        <canvas id="chartCategory" class="max-h-60"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ACCOUNTS VIEW -->
+            <section id="view-accounts" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-slate-800">חשבונות ויתרות פתיחה</h2>
+                    <button onclick="openModal('modal-account')" class="bg-sage-600 hover:bg-sage-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition">+ חשבון חדש</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="accounts-list">
+                    <!-- Dynamic Accounts Cards -->
+                </div>
+            </section>
+
+            <!-- TRANSACTIONS VIEW -->
+            <section id="view-transactions" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-slate-800">יומן תנועות ותקציב</h2>
+                    <button onclick="openModal('modal-tx')" class="bg-sage-600 hover:bg-sage-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition">+ תנועה חדשה</button>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex flex-wrap gap-2">
+                        <input type="text" id="tx-search" oninput="renderTransactions()" placeholder="חיפוש לפי תיאור..." class="text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 flex-1">
+                        <select id="tx-filter-status" onchange="renderTransactions()" class="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-2">
+                            <option value="ALL">כל הסטטוסים</option>
+                            <option value="completed">הושלם (בפועל)</option>
+                            <option value="planned">מתוכנן (עתידי)</option>
+                        </select>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs">
+                            <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
+                                <tr>
+                                    <th class="p-3">תאריך</th>
+                                    <th class="p-3">תיאור</th>
+                                    <th class="p-3">סוג</th>
+                                    <th class="p-3">סכום</th>
+                                    <th class="p-3">סטטוס</th>
+                                    <th class="p-3">פעולות</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tx-table-body" class="divide-y divide-slate-100">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- LOANS VIEW -->
+            <section id="view-loans" class="space-y-6 hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-slate-800">ניהול הלוואות וחובות</h2>
+                    <button onclick="openModal('modal-loan')" class="bg-sage-600 hover:bg-sage-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition">+ הלוואה חדשה</button>
+                </div>
+
+                <!-- Loan Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="loans-cards-container">
+                    <!-- Dynamic Loan Cards -->
+                </div>
+
+                <!-- Payments Ledger -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                    <h3 class="text-sm font-bold text-slate-800 mb-3">יומן תשלומים מפורט (החזרים)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs">
+                            <thead class="bg-slate-50 text-slate-500 font-semibold border-b">
+                                <tr>
+                                    <th class="p-2">תאריך</th>
+                                    <th class="p-2">לווה/מלווה</th>
+                                    <th class="p-2">סכום ששולם</th>
+                                    <th class="p-2">חלוקה לקרן</th>
+                                    <th class="p-2">חלוקה לריבית</th>
+                                    <th class="p-2">סטטוס</th>
+                                    <th class="p-2">פעולות</th>
+                                </tr>
+                            </thead>
+                            <tbody id="loan-payments-body" class="divide-y divide-slate-100">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around py-2 px-1 z-30 shadow-lg">
+        <button onclick="switchView('dashboard')" id="tab-dashboard" class="tab-item flex flex-col items-center gap-1 text-[11px] text-slate-500 active">
+            <span class="text-lg">📊</span> דשבורד
+        </button>
+        <button onclick="switchView('accounts')" id="tab-accounts" class="tab-item flex flex-col items-center gap-1 text-[11px] text-slate-500">
+            <span class="text-lg">💳</span> חשבונות
+        </button>
+        <button onclick="switchView('transactions')" id="tab-transactions" class="tab-item flex flex-col items-center gap-1 text-[11px] text-slate-500">
+            <span class="text-lg">📝</span> תנועות
+        </button>
+        <button onclick="switchView('loans')" id="tab-loans" class="tab-item flex flex-col items-center gap-1 text-[11px] text-slate-500">
+            <span class="text-lg">🤝</span> הלוואות
+        </button>
+    </nav>
+
+    <!-- MODALS -->
+    <div id="modal-tx" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 space-y-4 shadow-xl">
+            <h3 class="text-base font-bold text-slate-800">הוספת תנועה חדשה</h3>
+            <form id="form-tx" onsubmit="saveTransaction(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block mb-1 text-slate-600">תיאור</label>
+                    <input type="text" id="tx-desc" required class="w-full border rounded-lg p-2 bg-slate-50">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block mb-1 text-slate-600">סכום (₪)</label>
+                        <input type="number" id="tx-amount" step="0.01" required class="w-full border rounded-lg p-2 bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block mb-1 text-slate-600">סוג תנועה</label>
+                        <select id="tx-type" class="w-full border rounded-lg p-2 bg-slate-50">
+                            <option value="expense">הוצאה</option>
+                            <option value="income">הכנסה</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block mb-1 text-slate-600">סטטוס</label>
+                        <select id="tx-status" class="w-full border rounded-lg p-2 bg-slate-50">
+                            <option value="completed">הושלם (בפועל)</option>
+                            <option value="planned">מתוכנן (עתידי)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block mb-1 text-slate-600">חשבון</label>
+                        <select id="tx-account" class="w-full border rounded-lg p-2 bg-slate-50">
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-tx')" class="px-4 py-2 border rounded-xl">ביטול</button>
+                    <button type="submit" class="px-4 py-2 bg-sage-600 text-white font-bold rounded-xl">שמור</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT ENGINE -->
+    <script>
+        const initialData = {
+            accounts: [
+                { id: 'acc_1', name: 'חשבון עו"ש בנק', balance: 14500, type: 'bank' },
+                { id: 'acc_2', name: 'ארנק מזומן', balance: 800, type: 'cash' }
+            ],
+            transactions: [
+                { id: 'tx_1', desc: 'משכורת חודשית', amount: 12000, type: 'income', status: 'completed', accountId: 'acc_1', date: '2026-10-01' },
+                { id: 'tx_2', desc: 'קניות בסופר', amount: 850, type: 'expense', status: 'completed', accountId: 'acc_1', date: '2026-10-04' },
+                { id: 'tx_3', desc: 'חשמל מתוכנן', amount: 450, type: 'expense', status: 'planned', accountId: 'acc_1', date: '2026-10-25' }
+            ],
+            loans: [
+                {
+                    id: 'loan_1',
+                    borrowerName: 'ישראל ישראלי',
+                    purpose: 'הלוואה לרכישת רכב',
+                    type: 'lender',
+                    originalPrincipal: 100000,
+                    statusTag: 'בהחזר',
+                    payments: [
+                        { id: 'pay_101', date: '2026-09-01', amount: 20000, principalPaid: 20000, interestPaid: 0, status: 'completed' },
+                        { id: 'pay_102', date: '2026-10-01', amount: 15000, principalPaid: 15000, interestPaid: 0, status: 'completed' }
+                    ]
+                }
+            ]
+        };
+
+        let state = JSON.parse(localStorage.getItem('clear_balance_state')) || initialData;
+
+        function saveState() {
+            localStorage.setItem('clear_balance_state', JSON.stringify(state));
+            renderAll();
+        }
+
+        function switchView(viewName) {
+            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+
+            document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+
+            const sideEl = document.getElementById(`nav-${viewName}`);
+            const tabEl = document.getElementById(`tab-${viewName}`);
+            if(sideEl) sideEl.classList.add('active');
+            if(tabEl) tabEl.classList.add('active');
+        }
+
+        function calculateMetrics() {
+            const totalLiquid = state.accounts.reduce((sum, a) => sum + a.balance, 0);
+            const completedIncome = state.transactions.filter(t => t.type === 'income' && t.status === 'completed').reduce((sum, t) => sum + t.amount, 0);
+            const completedExpenses = state.transactions.filter(t => t.type === 'expense' && t.status === 'completed').reduce((sum, t) => sum + t.amount, 0);
+            const plannedExpenses = state.transactions.filter(t => t.type === 'expense' && t.status === 'planned').reduce((sum, t) => sum + t.amount, 0);
+            const forecast = totalLiquid - plannedExpenses;
+
+            let lenderTotal = 0;
+            let borrowerTotal = 0;
+
+            state.loans.forEach(loan => {
+                const totalPrincipalPaid = loan.payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.principalPaid, 0);
+                const remaining = loan.originalPrincipal - totalPrincipalPaid;
+                if (loan.type === 'lender') lenderTotal += remaining;
+                else borrowerTotal += remaining;
+            });
+
+            return { totalLiquid, completedIncome, completedExpenses, forecast, lenderTotal, borrowerTotal };
+        }
+
+        function renderDashboard() {
+            const m = calculateMetrics();
+            document.getElementById('dash-liquid-balance').textContent = `₪${m.totalLiquid.toLocaleString()}`;
+            document.getElementById('dash-income').textContent = `₪${m.completedIncome.toLocaleString()}`;
+            document.getElementById('dash-expenses').textContent = `₪${m.completedExpenses.toLocaleString()}`;
+            document.getElementById('dash-forecast').textContent = `₪${m.forecast.toLocaleString()}`;
+            document.getElementById('dash-lender-total').textContent = `₪${m.lenderTotal.toLocaleString()}`;
+            document.getElementById('dash-borrower-total').textContent = `₪${m.borrowerTotal.toLocaleString()}`;
+            document.getElementById('dash-free-money').textContent = `₪${m.forecast.toLocaleString()}`;
+            renderCharts(m);
+        }
+
+        function renderAccounts() {
+            const container = document.getElementById('accounts-list');
+            container.innerHTML = '';
+            const select = document.getElementById('tx-account');
+            select.innerHTML = '';
+
+            state.accounts.forEach(acc => {
+                const card = document.createElement('div');
+                card.className = 'bg-white p-4 rounded-2xl border border-slate-200 shadow-sm';
+                card.innerHTML = `
+                    <div class="text-xs text-slate-500 font-medium">${acc.type === 'bank' ? '🏦 חשבון בנק' : '💵 מזומן'}</div>
+                    <div class="text-base font-bold text-slate-800 mt-1">${acc.name}</div>
+                    <div class="text-xl font-extrabold text-sage-600 mt-2">₪${acc.balance.toLocaleString()}</div>
+                `;
+                container.appendChild(card);
+
+                const opt = document.createElement('option');
+                opt.value = acc.id;
+                opt.textContent = acc.name;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderTransactions() {
+            const tbody = document.getElementById('tx-table-body');
+            tbody.innerHTML = '';
+            const searchTerm = document.getElementById('tx-search').value.toLowerCase();
+            const statusFilter = document.getElementById('tx-filter-status').value;
+
+            const filtered = state.transactions.filter(t => {
+                const matchSearch = t.desc.toLowerCase().includes(searchTerm);
+                const matchStatus = statusFilter === 'ALL' || t.status === statusFilter;
+                return matchSearch && matchStatus;
+            });
+
+            filtered.forEach(t => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-3 text-slate-500">${t.date}</td>
+                    <td class="p-3 font-semibold text-slate-800">${t.desc}</td>
+                    <td class="p-3">${t.type === 'income' ? '<span class="text-emerald-600 font-bold">הכנסה</span>' : '<span class="text-rose-600 font-bold">הוצאה</span>'}</td>
+                    <td class="p-3 font-bold">₪${t.amount.toLocaleString()}</td>
+                    <td class="p-3">${t.status === 'completed' ? '<span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full">הושלם</span>' : '<span class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full">מתוכנן</span>'}</td>
+                    <td class="p-3"><button onclick="deleteTransaction('${t.id}')" class="text-rose-500 hover:text-rose-700">מחק</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderLoans() {
+            const container = document.getElementById('loans-cards-container');
+            container.innerHTML = '';
+            const paymentsBody = document.getElementById('loan-payments-body');
+            paymentsBody.innerHTML = '';
+
+            state.loans.forEach(loan => {
+                const activePayments = loan.payments.filter(p => p.status === 'completed');
+                const totalPrincipalPaid = activePayments.reduce((sum, p) => sum + p.principalPaid, 0);
+                const remainingPrincipal = loan.originalPrincipal - totalPrincipalPaid;
+                const repaymentPercentage = Math.round((totalPrincipalPaid / loan.originalPrincipal) * 100);
+
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-xs font-semibold text-slate-400">שם הלווה</span>
+                            <h3 class="text-xl font-extrabold text-slate-900">${loan.borrowerName}</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">${loan.purpose}</p>
+                        </div>
+                        <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200">${loan.statusTag}</span>
+                    </div>
+                    <hr class="border-slate-100">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-xs font-medium text-slate-400">סכום מקורי</span>
+                            <div class="text-lg font-extrabold text-slate-800">₪${loan.originalPrincipal.toLocaleString()}</div>
+                        </div>
+                        <div>
+                            <span class="text-xs font-medium text-slate-400">יתרה לתשלום</span>
+                            <div class="text-lg font-extrabold text-slate-900">₪${remainingPrincipal.toLocaleString()}</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+
+                loan.payments.forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="p-2 text-slate-500">${p.date}</td>
+                        <td class="p-2 font-semibold">${loan.borrowerName}</td>
+                        <td class="p-2 font-bold text-emerald-600">₪${p.amount.toLocaleString()}</td>
+                        <td class="p-2">₪${p.principalPaid.toLocaleString()}</td>
+                        <td class="p-2">₪${p.interestPaid.toLocaleString()}</td>
+                        <td class="p-2">${p.status === 'completed' ? '<span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full">פעיל</span>' : '<span class="bg-rose-100 text-rose-800 text-[10px] px-2 py-0.5 rounded-full">מבוטל</span>'}</td>
+                        <td class="p-2">-</td>
+                    `;
+                    paymentsBody.appendChild(tr);
+                });
+            });
+        }
+
+        let flowChartInstance = null;
+        let catChartInstance = null;
+
+        function renderCharts(metrics) {
+            if(flowChartInstance) flowChartInstance.destroy();
+            if(catChartInstance) catChartInstance.destroy();
+
+            const ctxFlow = document.getElementById('chartFlow').getContext('2d');
+            flowChartInstance = new Chart(ctxFlow, {
+                type: 'bar',
+                data: {
+                    labels: ['אוקטובר 2026'],
+                    datasets: [
+                        { label: 'הכנסות', data: [metrics.completedIncome], backgroundColor: '#10b981' },
+                        { label: 'הוצאות', data: [metrics.completedExpenses], backgroundColor: '#ef4444' }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            const ctxCat = document.getElementById('chartCategory').getContext('2d');
+            catChartInstance = new Chart(ctxCat, {
+                type: 'doughnut',
+                data: {
+                    labels: ['סופרמרקט / מזון'],
+                    datasets: [{ data: [metrics.completedExpenses], backgroundColor: ['#5a7863'] }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function saveTransaction(e) {
+            e.preventDefault();
+            const desc = document.getElementById('tx-desc').value;
+            const amount = parseFloat(document.getElementById('tx-amount').value);
+            const type = document.getElementById('tx-type').value;
+            const status = document.getElementById('tx-status').value;
+            const accountId = document.getElementById('tx-account').value;
+
+            state.transactions.push({
+                id: 'tx_' + Date.now(),
+                desc, amount, type, status, accountId,
+                date: new Date().toISOString().split('T')[0]
+            });
+
+            if(status === 'completed') {
+                const acc = state.accounts.find(a => a.id === accountId);
+                if(acc) {
+                    if(type === 'income') acc.balance += amount;
+                    else acc.balance -= amount;
+                }
+            }
+
+            closeModal('modal-tx');
+            saveState();
+        }
+
+        function deleteTransaction(id) {
+            state.transactions = state.transactions.filter(t => t.id !== id);
+            saveState();
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function renderAll() {
+            renderDashboard();
+            renderAccounts();
+            renderTransactions();
+            renderLoans();
+        }
+
+        renderAll();
+    </script>
+</body>
+</html>
