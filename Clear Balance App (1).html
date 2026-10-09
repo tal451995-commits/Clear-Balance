@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>חשבון ברור - Clear Balance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --font-he: 'Assistant', sans-serif;
+            --font-en: 'Inter', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-he);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body[dir="ltr"] {
+            font-family: var(--font-en);
+        }
+
+        /* Metallic 3D Charcoal Card Styling */
+        .metallic-card {
+            background: linear-gradient(145deg, #1f242d 0%, #0a0c10 100%);
+            border-top: 1px solid rgba(255, 255, 255, 0.25);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.8);
+            box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .metallic-card-subtle {
+            background: linear-gradient(145deg, #2a303c 0%, #12151a 100%);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.3);
+        }
+
+        .gloss-accent {
+            background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 100%);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+    <div id="app" class="min-h-screen flex flex-col pb-20 md:pb-6 max-w-md mx-auto w-full bg-slate-50 border-x border-slate-200 shadow-xl relative">
+        
+        <!-- HEADER -->
+        <header class="metallic-card text-white p-4 sticky top-0 z-30 flex items-center justify-between shadow-md">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-amber-200 text-slate-900 flex items-center justify-center font-extrabold text-xl shadow-lg border border-amber-100/40">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg leading-none tracking-tight text-slate-100" data-i18n="appTitle">חשבון ברור</h1>
+                    <span class="text-xs text-slate-400 font-medium" data-i18n="appSubtitle">ניהול פיננסי חכם ופשוט</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Notifications Center Bell -->
+                <button onclick="toggleNotifications()" class="relative p-2 text-slate-300 hover:text-white transition rounded-lg hover:bg-white/10">
+                    <i class="fa-solid fa-bell text-lg"></i>
+                    <span id="notif-badge" class="hidden absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-slate-900"></span>
+                </button>
+
+                <!-- Language Selector -->
+                <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-slate-800 border border-slate-600 text-xs text-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-400">
+                    <option value="he">עברית</option>
+                    <option value="en">English</option>
+                    <option value="ar">العربية</option>
+                </select>
+            </div>
+        </header>
+
+        <!-- NOTIFICATIONS DROPDOWN PANEL -->
+        <div id="notifications-panel" class="hidden absolute top-16 left-4 right-4 z-40 metallic-card rounded-2xl p-4 text-white shadow-2xl border border-slate-700 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-700/80 pb-2">
+                <h3 class="font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-bell text-amber-400"></i>
+                    <span data-i18n="notifications">התראות ותזכורות</span>
+                </h3>
+                <button onclick="toggleNotifications()" class="text-slate-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="notifications-list" class="space-y-2 max-h-60 overflow-y-auto text-xs">
+                <!-- Dynamic notifications inserted here -->
+            </div>
+        </div>
+
+        <!-- MAIN DASHBOARD CONTENT -->
+        <main class="flex-1 p-4 space-y-5 overflow-y-auto">
+
+            <!-- METALLIC HERO CARD: FREE-TO-SPEND & BALANCE -->
+            <section class="metallic-card rounded-2xl p-5 text-white relative overflow-hidden">
+                <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold" data-i18n="freeToSpend">כסף פנוי לבזבוז</span>
+                        <div id="free-spend-display" class="text-3xl font-extrabold text-amber-400 mt-0.5 tracking-tight">₪0</div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-400/10 text-amber-300 border border-amber-400/20" data-i18n="realTime">זמן אמת</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-3 border-t border-slate-700/80 text-xs">
+                    <div>
+                        <span class="text-slate-400 block" data-i18n="currentBalance">יתרה כוללת עו"ש</span>
+                        <span id="total-balance-display" class="font-bold text-sm text-slate-100">₪0</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block" data-i18n="monthlyCommitments">התחייבויות החודש</span>
+                        <span id="commitments-display" class="font-bold text-sm text-rose-400">₪0</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ACTION BUTTONS -->
+            <section class="grid grid-cols-2 gap-3">
+                <button onclick="openModal('transaction')" class="p-3.5 metallic-card rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition">
+                    <i class="fa-solid fa-circle-plus text-emerald-400"></i>
+                    <span data-i18n="addTransaction">הוסף תנועה</span>
+                </button>
+                <button onclick="openModal('loan')" class="p-3.5 metallic-card rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition">
+                    <i class="fa-solid fa-hand-holding-dollar text-amber-400"></i>
+                    <span data-i18n="addLoan">הוסף חוב / הלוואה</span>
+                </button>
+            </section>
+
+            <!-- RUNWAY & FORECAST CARD -->
+            <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-indigo-600"></i>
+                        <span data-i18n="forecastRunway">תחזית תזרימית (Runway)</span>
+                    </h2>
+                    <span id="runway-badge" class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">יציב</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <span class="text-slate-500 text-[10px] block" data-i18n="endOfMonth">סוף החודש</span>
+                        <span id="forecast-month" class="font-bold text-slate-800">₪0</span>
+                    </div>
+                    <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <span class="text-slate-500 text-[10px] block" data-i18n="in60Days">בעוד 60 יום</span>
+                        <span id="forecast-60" class="font-bold text-slate-800">₪0</span>
+                    </div>
+                    <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <span class="text-slate-500 text-[10px] block" data-i18n="in90Days">בעוד 90 יום</span>
+                        <span id="forecast-90" class="font-bold text-slate-800">₪0</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DEBTS & LOANS SUMMARY -->
+            <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-file-invoice-dollar text-amber-600"></i>
+                        <span data-i18n="debtsAndLoans">מעקב חובות והחזרים</span>
+                    </h2>
+                    <span id="total-debts-tag" class="text-xs font-bold text-slate-600">₪0</span>
+                </div>
+                <div id="loans-container" class="space-y-2.5">
+                    <!-- Dynamic Loans inserted here -->
+                </div>
+            </section>
+
+            <!-- FIXED EXPENSES & INCOMES -->
+            <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-calendar-check text-emerald-600"></i>
+                        <span data-i18n="fixedMonthly">תקציב ותשלומים קבועים</span>
+                    </h2>
+                    <button onclick="openModal('fixed')" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800" data-i18n="manageFixed">+ ניהול קבועות</button>
+                </div>
+                <div id="fixed-container" class="space-y-2 text-xs">
+                    <!-- Dynamic Fixed Items -->
+                </div>
+            </section>
+
+            <!-- RECENT TRANSACTIONS LOG -->
+            <section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-receipt text-slate-600"></i>
+                        <span data-i18n="recentTransactions">תנועות אחרונות</span>
+                    </h2>
+                    <span id="trans-count" class="text-xs text-slate-400">0 תנועות</span>
+                </div>
+                <div id="transactions-container" class="space-y-2 text-xs">
+                    <!-- Dynamic Transactions -->
+                </div>
+            </section>
+
+        </main>
+
+        <!-- BOTTOM NAVIGATION BAR -->
+        <nav class="metallic-card fixed bottom-0 max-w-md w-full z-30 border-t border-slate-700/80 px-6 py-2 flex justify-between items-center text-slate-400 text-[11px]">
+            <button onclick="switchTab('dashboard')" class="nav-btn active text-amber-400 flex flex-col items-center gap-1">
+                <i class="fa-solid fa-house text-base"></i>
+                <span data-i18n="navHome">ראשי</span>
+            </button>
+            <button onclick="switchTab('debts')" class="nav-btn flex flex-col items-center gap-1 hover:text-slate-200">
+                <i class="fa-solid fa-handshake-angle text-base"></i>
+                <span data-i18n="navDebts">חובות</span>
+            </button>
+            <button onclick="switchTab('analytics')" class="nav-btn flex flex-col items-center gap-1 hover:text-slate-200">
+                <i class="fa-solid fa-chart-pie text-base"></i>
+                <span data-i18n="navAnalytics">ניתוח</span>
+            </button>
+            <button onclick="switchTab('settings')" class="nav-btn flex flex-col items-center gap-1 hover:text-slate-200">
+                <i class="fa-solid fa-gear text-base"></i>
+                <span data-i18n="navSettings">הגדרות</span>
+            </button>
+        </nav>
+
+        <!-- TOAST / UNDO NOTIFICATION -->
+        <div id="toast-container" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 hidden w-[90%] max-w-xs">
+            <div class="metallic-card rounded-xl p-3 text-white text-xs flex items-center justify-between shadow-2xl border border-amber-400/30">
+                <span id="toast-message">הפעולה בוצעה</span>
+                <button id="toast-undo-btn" class="font-bold text-amber-400 hover:underline px-2 py-1" data-i18n="undo">בטל פעולה</button>
+            </div>
+        </div>
+
+        <!-- MODAL CONTAINER (GENERIC) -->
+        <div id="generic-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="metallic-card rounded-2xl w-full max-w-sm p-5 text-white shadow-2xl space-y-4 border border-slate-700 relative">
+                <button onclick="closeModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <h3 id="modal-title" class="font-bold text-base text-amber-400">כותרת</h3>
+                <div id="modal-body" class="space-y-3 text-xs">
+                    <!-- Dynamic Form Content -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- APPLICATION LOGIC & SCRIPT -->
+    <script>
+        // MULTILINGUAL DICTIONARY
+        const i18n = {
+            he: {
+                appTitle: "חשבון ברור",
+                appSubtitle: "ניהול פיננסי חכם ופשוט",
+                freeToSpend: "כסף פנוי לבזבוז",
+                realTime: "זמן אמת",
+                currentBalance: 'יתרה כוללת עו"ש',
+                monthlyCommitments: "התחייבויות החודש",
+                addTransaction: "הוסף תנועה",
+                addLoan: "הוסף חוב / הלוואה",
+                forecastRunway: "תחזית תזרימית (Runway)",
+                endOfMonth: "סוף החודש",
+                in60Days: "בעוד 60 יום",
+                in90Days: "בעוד 90 יום",
+                debtsAndLoans: "מעקב חובות והחזרים",
+                fixedMonthly: "תקציב ותשלומים קבועים",
+                manageFixed: "+ ניהול קבועות",
+                recentTransactions: "תנועות אחרונות",
+                notifications: "התראות ותזכורות",
+                navHome: "ראשי",
+                navDebts: "חובות",
+                navAnalytics: "ניתוח",
+                navSettings: "הגדרות",
+                undo: "בטל פעולה",
+                currency: "₪",
+                noDebts: "אין חובות פעילים כרגע",
+                noTransactions: "אין תנועות עדיין"
+            },
+            en: {
+                appTitle: "Clear Balance",
+                appSubtitle: "Smart Financial Tracking",
+                freeToSpend: "Free to Spend",
+                realTime: "Real-time",
+                currentBalance: "Total Current Balance",
+                monthlyCommitments: "Monthly Commitments",
+                addTransaction: "Add Transaction",
+                addLoan: "Add Debt / Loan",
+                forecastRunway: "Financial Runway",
+                endOfMonth: "End of Month",
+                in60Days: "In 60 Days",
+                in90Days: "In 90 Days",
+                debtsAndLoans: "Debts & Repayments",
+                fixedMonthly: "Fixed Budget & Bills",
+                manageFixed: "+ Manage Fixed",
+                recentTransactions: "Recent Transactions",
+                notifications: "Notifications",
+                navHome: "Home",
+                navDebts: "Debts",
+                navAnalytics: "Analytics",
+                navSettings: "Settings",
+                undo: "Undo",
+                currency: "$",
+                noDebts: "No active debts at the moment",
+                noTransactions: "No transactions yet"
+            },
+            ar: {
+                appTitle: "רציד ואדח",
+                appSubtitle: "إدارة مالية ذكية وبסיطة",
+                freeToSpend: "المال المتاح للإنفاق",
+                realTime: "الوقت الفعلي",
+                currentBalance: "إجمالي الرصيد الحالي",
+                monthlyCommitments: "الالتزامات الشهرية",
+                addTransaction: "إضافة معاملة",
+                addLoan: "إضافة دين / قرض",
+                forecastRunway: "التوقعات المالية",
+                endOfMonth: "نهاية الشهر",
+                in60Days: "خلال 60 يومًا",
+                in90Days: "خلال 90 يومًا",
+                debtsAndLoans: "متابعة الديون والآجال",
+                fixedMonthly: "الميزانية والفواتير الثابتة",
+                manageFixed: "+ إدارة الثوابت",
+                recentTransactions: "المعاملات الأخيرة",
+                notifications: "الإشعارات والتذكيرات",
+                navHome: "الرئيسية",
+                navDebts: "الديون",
+                navAnalytics: "التحليل",
+                navSettings: "الإعدادات",
+                undo: "تراجع",
+                currency: "₪",
+                noDebts: "لا توجد ديون نشطة حالياً",
+                noTransactions: "لا توجد معاملات بعد"
+            }
+        };
+
+        // APPLICATION STATE
+        let state = {
+            lang: localStorage.getItem('cb_lang') || 'he',
+            balance: parseFloat(localStorage.getItem('cb_balance')) || 0,
+            transactions: JSON.parse(localStorage.getItem('cb_transactions')) || [],
+            loans: JSON.parse(localStorage.getItem('cb_loans')) || [],
+            fixedItems: JSON.parse(localStorage.getItem('cb_fixed')) || [],
+            overrides: JSON.parse(localStorage.getItem('cb_overrides')) || {},
+            undoState: null
+        };
+
+        // INIT APPLICATION
+        document.addEventListener('DOMContentLoaded', () => {
+            changeLanguage(state.lang);
+            renderDashboard();
+        });
+
+        // LANGUAGE CHANGE HANDLER
+        function changeLanguage(lang) {
+            state.lang = lang;
+            localStorage.setItem('cb_lang', lang);
+            
+            document.documentElement.lang = lang;
+            document.documentElement.dir = (lang === 'en') ? 'ltr' : 'rtl';
+            document.body.setAttribute('dir', (lang === 'en') ? 'ltr' : 'rtl');
+
+            document.getElementById('lang-select').value = lang;
+
+            // Update UI Labels
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[lang][key]) {
+                    el.innerText = i18n[lang][key];
+                }
+            });
+
+            renderDashboard();
+        }
+
+        // SAVE STATE
+        function saveState() {
+            localStorage.setItem('cb_balance', state.balance);
+            localStorage.setItem('cb_transactions', JSON.stringify(state.transactions));
+            localStorage.setItem('cb_loans', JSON.stringify(state.loans));
+            localStorage.setItem('cb_fixed', JSON.stringify(state.fixedItems));
+            localStorage.setItem('cb_overrides', JSON.stringify(state.overrides));
+        }
+
+        // CALCULATE FINANCIAL RUNWAY & FREE SPEND
+        function calculateFinances() {
+            const currentMonthKey = new Date().toISOString().slice(0, 7);
+            
+            // Calculate Total Fixed Commitments with monthly overrides
+            let fixedCommitments = 0;
+            state.fixedItems.forEach(item => {
+                if (item.type === 'expense') {
+                    const override = state.overrides[currentMonthKey]?.[item.id];
+                    fixedCommitments += (override !== undefined) ? override : item.amount;
+                }
+            });
+
+            // Calculate active loan monthly returns
+            let loanCommitments = state.loans.reduce((acc, l) => acc + (l.remaining > 0 ? (l.monthlyPay || 0) : 0), 0);
+
+            const totalCommitments = fixedCommitments + loanCommitments;
+            const freeSpend = state.balance - totalCommitments;
+
+            return {
+                freeSpend,
+                totalCommitments,
+                fixedCommitments,
+                loanCommitments
+            };
+        }
+
+        // RENDER DASHBOARD
+        function renderDashboard() {
+            const curr = i18n[state.lang].currency;
+            const { freeSpend, totalCommitments } = calculateFinances();
+
+            document.getElementById('free-spend-display').innerText = `${curr}${freeSpend.toLocaleString()}`;
+            document.getElementById('total-balance-display').innerText = `${curr}${state.balance.toLocaleString()}`;
+            document.getElementById('commitments-display').innerText = `${curr}${totalCommitments.toLocaleString()}`;
+
+            // Forecast calculations
+            document.getElementById('forecast-month').innerText = `${curr}${(freeSpend).toLocaleString()}`;
+            document.getElementById('forecast-60').innerText = `${curr}${(freeSpend * 2).toLocaleString()}`;
+            document.getElementById('forecast-90').innerText = `${curr}${(freeSpend * 3).toLocaleString()}`;
+
+            renderLoans();
+            renderTransactions();
+            renderNotifications();
+        }
+
+        // RENDER LOANS
+        function renderLoans() {
+            const container = document.getElementById('loans-container');
+            const curr = i18n[state.lang].currency;
+
+            if (state.loans.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 text-center py-3">${i18n[state.lang].noDebts}</p>`;
+                document.getElementById('total-debts-tag').innerText = `${curr}0`;
+                return;
+            }
+
+            let totalRemaining = 0;
+            container.innerHTML = state.loans.map(loan => {
+                totalRemaining += loan.remaining;
+                const progress = Math.min(100, Math.round(((loan.total - loan.remaining) / loan.total) * 100)) || 0;
+
+                return `
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+                        <div class="flex justify-between items-center font-semibold">
+                            <span class="text-slate-800">${escapeHtml(loan.name)}</span>
+                            <span class="text-rose-600 font-bold">${curr}${loan.remaining.toLocaleString()}</span>
+                        </div>
+                        <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                            <div class="bg-amber-500 h-full transition-all duration-300" style="width: ${progress}%"></div>
+                        </div>
+                        <div class="flex justify-between items-center text-[10px] text-slate-500">
+                            <span>${progress}% הוחזר</span>
+                            <button onclick="repayLoan('${loan.id}')" class="text-indigo-600 font-bold hover:underline">+ לרשום החזר</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('total-debts-tag').innerText = `${curr}${totalRemaining.toLocaleString()}`;
+        }
+
+        // RENDER TRANSACTIONS
+        function renderTransactions() {
+            const container = document.getElementById('transactions-container');
+            const curr = i18n[state.lang].currency;
+
+            document.getElementById('trans-count').innerText = `${state.transactions.length} תנועות`;
+
+            if (state.transactions.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 text-center py-3">${i18n[state.lang].noTransactions}</p>`;
+                return;
+            }
+
+            container.innerHTML = state.transactions.slice(0, 5).map(t => `
+                <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-lg ${t.type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'} flex items-center justify-center font-bold text-xs">
+                            <i class="fa-solid ${t.type === 'income' ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-slate-800">${escapeHtml(t.note || 'תנועה')}</div>
+                            <div class="text-[10px] text-slate-400">${t.date}</div>
+                        </div>
+                    </div>
+                    <span class="font-bold ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}">
+                        ${t.type === 'income' ? '+' : '-'}${curr}${t.amount.toLocaleString()}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        // RENDER NOTIFICATIONS
+        function renderNotifications() {
+            const list = document.getElementById('notifications-list');
+            const badge = document.getElementById('notif-badge');
+            
+            let notifications = [];
+
+            // Check debts nearing due dates
+            state.loans.forEach(loan => {
+                if (loan.remaining > 0 && loan.dueDate) {
+                    notifications.push(`תזכורת: תשלום חוב עבור <strong>${escapeHtml(loan.name)}</strong> קרוב למועד.`);
+                }
+            });
+
+            if (notifications.length > 0) {
+                badge.classList.remove('hidden');
+                list.innerHTML = notifications.map(n => `<div class="p-2 bg-slate-800/80 rounded-lg border border-slate-700">${n}</div>`).join('');
+            } else {
+                badge.classList.add('hidden');
+                list.innerHTML = `<p class="text-slate-400 text-center py-2">אין התראות חדשות</p>`;
+            }
+        }
+
+        // MODALS HANDLER
+        function openModal(type) {
+            const modal = document.getElementById('generic-modal');
+            const title = document.getElementById('modal-title');
+            const body = document.getElementById('modal-body');
+
+            if (type === 'transaction') {
+                title.innerText = "הוספת תנועה חדשה";
+                body.innerHTML = `
+                    <div class="space-y-3">
+                        <select id="trans-type" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                            <option value="expense">הוצאה (-)</option>
+                            <option value="income">הכנסה (+)</option>
+                        </select>
+                        <input type="number" id="trans-amount" placeholder="סכום" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                        <input type="text" id="trans-note" placeholder="תיאור / הערה" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                        <button onclick="submitTransaction()" class="w-full bg-amber-500 hover:bg-amber-400 font-bold p-2.5 rounded-lg text-slate-900 transition">שמור תנועה</button>
+                    </div>
+                `;
+            } else if (type === 'loan') {
+                title.innerText = "הוספת חוב / הלוואה";
+                body.innerHTML = `
+                    <div class="space-y-3">
+                        <input type="text" id="loan-name" placeholder="שם החוב (למשל: הלוואה לרכב)" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                        <input type="number" id="loan-total" placeholder="סכום החוב הכולל" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                        <input type="number" id="loan-monthly" placeholder="החזר חודשי משוער" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                        <button onclick="submitLoan()" class="w-full bg-amber-500 hover:bg-amber-400 font-bold p-2.5 rounded-lg text-slate-900 transition">שמור חוב</button>
+                    </div>
+                `;
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('generic-modal').classList.add('hidden');
+        }
+
+        // SUBMIT TRANSACTION
+        function submitTransaction() {
+            const amount = parseFloat(document.getElementById('trans-amount').value);
+            const type = document.getElementById('trans-type').value;
+            const note = document.getElementById('trans-note').value.trim();
+
+            if (!amount || amount <= 0) return;
+
+            const transaction = {
+                id: Date.now().toString(),
+                amount,
+                type,
+                note,
+                date: new Date().toLocaleDateString('he-IL')
+            };
+
+            state.transactions.unshift(transaction);
+            if (type === 'income') state.balance += amount;
+            else state.balance -= amount;
+
+            saveState();
+            renderDashboard();
+            closeModal();
+            showToast('התנועה התווספה בהצלחה');
+        }
+
+        // SUBMIT LOAN
+        function submitLoan() {
+            const name = document.getElementById('loan-name').value.trim();
+            const total = parseFloat(document.getElementById('loan-total').value);
+            const monthlyPay = parseFloat(document.getElementById('loan-monthly').value) || 0;
+
+            if (!name || !total) return;
+
+            const loan = {
+                id: Date.now().toString(),
+                name,
+                total,
+                remaining: total,
+                monthlyPay
+            };
+
+            state.loans.push(loan);
+            saveState();
+            renderDashboard();
+            closeModal();
+            showToast('החוב נוסף למעקב');
+        }
+
+        // REPAY LOAN
+        function repayLoan(id) {
+            const loan = state.loans.find(l => l.id === id);
+            if (!loan) return;
+
+            const payAmount = prompt(`הזן סכום החזר עבור ${loan.name}:`, loan.monthlyPay || "");
+            const amount = parseFloat(payAmount);
+
+            if (!amount || amount <= 0) return;
+
+            loan.remaining = Math.max(0, loan.remaining - amount);
+            state.balance -= amount;
+
+            saveState();
+            renderDashboard();
+            showToast(`נרשם החזר ע"ס ₪${amount}`);
+        }
+
+        // UTILS
+        function toggleNotifications() {
+            document.getElementById('notifications-panel').classList.toggle('hidden');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-container');
+            document.getElementById('toast-message').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 4000);
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('text-amber-400'));
+            event.currentTarget.classList.add('text-amber-400');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.innerText = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
