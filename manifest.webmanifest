@@ -14,13 +14,13 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/Clear-Balance/icons/icon-192.png",
+      "src": "/Clear-Balance/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/Clear-Balance/icons/icon-512.png",
+      "src": "/Clear-Balance/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
