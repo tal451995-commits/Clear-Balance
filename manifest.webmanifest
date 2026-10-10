@@ -1,0 +1,14 @@
+
+{
+  "id": "/Clear-Balance/",
+  "name": "Clear Balance - מאזן נקי",
+  "short_name": "מאזן נקי",
+  "description": "ניהול פיננסי אישי, חובות, הלוואות והוצאות",
+  "start_url": "/Clear-Balance/",
+  "scope": "/Clear-Balance/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f9fafb",
+  "theme_color": "#000000",
+  "prefer_related_applications": false
+}
