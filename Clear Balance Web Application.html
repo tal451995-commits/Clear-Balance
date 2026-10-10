@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Balance - חשבון ברור</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS CDN for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Rubik', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 3D Card Aesthetic & Shadows */
+        .card-3d {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+            border-radius: 1.25rem;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-3d:hover {
+            box-shadow: 0 14px 28px -4px rgba(0, 0, 0, 0.08), 0 10px 12px -4px rgba(0, 0, 0, 0.04);
+        }
+
+        /* 3D Dark Buttons */
+        .btn-3d-dark {
+            background-color: #0f172a;
+            color: #ffffff;
+            box-shadow: 0 4px 10px -1px rgba(15, 23, 42, 0.3), 0 2px 4px -2px rgba(15, 23, 42, 0.2);
+            transition: all 0.15s ease-in-out;
+        }
+
+        .btn-3d-dark:hover {
+            background-color: #1e293b;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px -1px rgba(15, 23, 42, 0.35);
+        }
+
+        .btn-3d-dark:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 4px -1px rgba(15, 23, 42, 0.2);
+        }
+
+        /* Custom Scrollbar for Modals */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="pb-24 min-h-screen antialiased selection:bg-emerald-100 selection:text-emerald-900">
+
+    <!-- Top Sticky Header -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-xl mx-auto px-4 py-3.5 flex items-center justify-between">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="w-10 h-10 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-md shadow-slate-900/20">
+                    <i data-lucide="wallet" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-slate-900 leading-none">Clear Balance</h1>
+                    <p class="text-[11px] font-medium text-slate-400 mt-0.5">חשבון ברור</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2 space-x-reverse">
+                <button onclick="exportToExcel()" class="px-3 py-2 text-slate-700 bg-slate-100 hover:bg-slate-200/80 active:scale-95 rounded-xl flex items-center gap-1.5 text-xs font-semibold transition">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
+                    <span>ייצוא לאקסל</span>
+                </button>
+                <button onclick="showAuthModal()" class="p-2 text-slate-700 bg-slate-100 hover:bg-slate-200/80 active:scale-95 rounded-xl transition">
+                    <i data-lucide="user" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-xl mx-auto px-4 py-6 space-y-6">
+
+        <!-- Welcome Banner & Date -->
+        <div class="space-y-1">
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider" id="currentDateDisplay">שבת, 10 באוקטובר 2026</div>
+            <h2 class="text-2xl font-black text-slate-900 tracking-tight">הכסף שלך, ברור.</h2>
+        </div>
+
+        <!-- Main Balance / Total Owed Card -->
+        <div class="card-3d p-6 relative overflow-hidden bg-gradient-to-br from-white to-slate-50/50">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">יתרה כוללת שצריך לקבל</span>
+                    <div class="text-3xl font-black text-slate-900 mt-1 tracking-tight" id="totalToReceiveDisplay">₪0</div>
+                </div>
+                <span class="px-3 py-1 text-xs font-bold bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100 shadow-sm" id="loansCountTag">
+                    0 חובות פתוחים
+                </span>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                <div>
+                    <span class="text-xs text-slate-400 font-medium">החודש התקבל</span>
+                    <div class="text-lg font-bold text-emerald-600 mt-0.5 flex items-center gap-1" id="monthlyReceivedDisplay">
+                        <span>₪0</span>
+                        <i data-lucide="arrow-up-right" class="w-4 h-4 text-emerald-500"></i>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-400 font-medium">החזרים פעילים</span>
+                    <div class="text-lg font-bold text-slate-900 mt-0.5" id="activeRepaymentsDisplay">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Direct Input Money Sources Section -->
+        <div class="space-y-3">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span>מקורות כספיים</span>
+                    <i data-lucide="shield-check" class="w-4 h-4 text-emerald-500"></i>
+                </h3>
+                <span class="text-xs font-medium text-slate-400">הזנה ישירה</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <!-- Bank Account -->
+                <div class="card-3d p-4 focus-within:ring-2 focus-within:ring-slate-900 transition">
+                    <div class="flex items-center gap-2 text-slate-500 text-xs font-semibold mb-1.5">
+                        <i data-lucide="building-2" class="w-4 h-4 text-slate-700"></i>
+                        <span>חשבון בנק</span>
+                    </div>
+                    <div class="relative flex items-center">
+                        <input type="number" id="bankBalance" onchange="updateSources()" class="w-full font-bold text-xl text-slate-900 bg-transparent outline-none placeholder:text-slate-300" placeholder="0">
+                        <span class="text-xs font-bold text-slate-400 absolute left-0">₪</span>
+                    </div>
+                </div>
+
+                <!-- Bit -->
+                <div class="card-3d p-4 focus-within:ring-2 focus-within:ring-slate-900 transition">
+                    <div class="flex items-center gap-2 text-slate-500 text-xs font-semibold mb-1.5">
+                        <i data-lucide="smartphone" class="w-4 h-4 text-blue-500"></i>
+                        <span>Bit</span>
+                    </div>
+                    <div class="relative flex items-center">
+                        <input type="number" id="bitBalance" onchange="updateSources()" class="w-full font-bold text-xl text-slate-900 bg-transparent outline-none placeholder:text-slate-300" placeholder="0">
+                        <span class="text-xs font-bold text-slate-400 absolute left-0">₪</span>
+                    </div>
+                </div>
+
+                <!-- Cash -->
+                <div class="card-3d p-4 focus-within:ring-2 focus-within:ring-slate-900 transition">
+                    <div class="flex items-center gap-2 text-slate-500 text-xs font-semibold mb-1.5">
+                        <i data-lucide="banknote" class="w-4 h-4 text-emerald-500"></i>
+                        <span>מזומן</span>
+                    </div>
+                    <div class="relative flex items-center">
+                        <input type="number" id="cashBalance" onchange="updateSources()" class="w-full font-bold text-xl text-slate-900 bg-transparent outline-none placeholder:text-slate-300" placeholder="0">
+                        <span class="text-xs font-bold text-slate-400 absolute left-0">₪</span>
+                    </div>
+                </div>
+
+                <!-- Investments / Stocks -->
+                <div class="card-3d p-4 focus-within:ring-2 focus-within:ring-slate-900 transition">
+                    <div class="flex items-center gap-2 text-slate-500 text-xs font-semibold mb-1.5">
+                        <i data-lucide="trending-up" class="w-4 h-4 text-purple-500"></i>
+                        <span>מניות / השקעות</span>
+                    </div>
+                    <div class="relative flex items-center">
+                        <input type="number" id="investmentsBalance" onchange="updateSources()" class="w-full font-bold text-xl text-slate-900 bg-transparent outline-none placeholder:text-slate-300" placeholder="0">
+                        <span class="text-xs font-bold text-slate-400 absolute left-0">₪</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debts & Loans Section -->
+        <div class="space-y-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">ניהול חובות והלוואות</h3>
+                    <p class="text-xs text-slate-400">מעקב גבייה והחזרים בזמן אמת</p>
+                </div>
+                <button onclick="openNewLoanModal()" class="text-xs font-bold bg-slate-900 text-white px-3.5 py-2.5 rounded-xl btn-3d-dark flex items-center gap-1.5 shadow-sm">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>הוסף הלוואה</span>
+                </button>
+            </div>
+
+            <!-- Dynamic Loans Cards List Container -->
+            <div id="loansListContainer" class="space-y-3">
+                <!-- Loan cards rendered dynamically by JavaScript -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Detailed Repayments & History Modal -->
+    <div id="loanDetailsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden transition-all duration-200">
+        <div class="card-3d w-full max-w-lg p-6 bg-white max-h-[90vh] flex flex-col relative shadow-2xl">
+            <!-- Modal Header -->
+            <button onclick="closeLoanDetailsModal()" class="absolute top-4 left-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            
+            <div id="loanModalHeader" class="mb-5">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <div class="overflow-y-auto custom-scroll space-y-5 pr-1">
+                <!-- Repayment Progress Card -->
+                <div class="card-3d p-4 bg-slate-50/60 border border-slate-200/80">
+                    <div class="flex justify-between items-center text-sm mb-1.5">
+                        <span class="text-xs font-bold text-slate-400 uppercase">יתרה לפרעון</span>
+                        <span class="font-black text-xl text-slate-900" id="modalRemainingText">₪0</span>
+                    </div>
+                    <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden mb-3">
+                        <div id="modalProgressBar" class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="grid grid-cols-2 text-xs text-slate-500 pt-2.5 border-t border-slate-200/80">
+                        <div>סכום מקורי: <span class="font-bold text-slate-800" id="modalOriginalText">₪0</span></div>
+                        <div>סך הוחזר: <span class="font-bold text-emerald-600" id="modalPaidText">₪0</span></div>
+                    </div>
+                </div>
+
+                <!-- Add New Repayment Form -->
+                <div class="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
+                    <h4 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                        <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-600"></i>
+                        <span>רישום החזר חדש</span>
+                    </h4>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">סכום (₪)</label>
+                            <input type="number" id="repayAmountInput" placeholder="0" class="w-full p-2.5 text-sm font-bold border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-slate-900 bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">תאריך החזר</label>
+                            <input type="date" id="repayDateInput" class="w-full p-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-slate-900 bg-white">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">אמצעי תשלום</label>
+                            <select id="repayMethodInput" class="w-full p-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-slate-900 bg-white">
+                                <option value="Bit">Bit</option>
+                                <option value="העברה בנקאית">העברה בנקאית</option>
+                                <option value="מזומן">מזומן</option>
+                                <option value="PayBox">PayBox</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 mb-1">הערה / פירוט</label>
+                            <input type="text" id="repayNoteInput" placeholder="החזר חלק מהחוב" class="w-full p-2.5 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-slate-900 bg-white">
+                        </div>
+                    </div>
+                    <button onclick="addRepaymentSubmit()" class="w-full py-3 btn-3d-dark rounded-xl text-xs font-bold tracking-wide mt-1">
+                        אישור והוספת החזר
+                    </button>
+                </div>
+
+                <!-- Repayments History Log -->
+                <div>
+                    <h4 class="text-sm font-bold text-slate-900 mb-3 flex items-center justify-between">
+                        <span>היסטוריית תשלומים</span>
+                        <span class="text-xs text-slate-400 font-normal" id="repaymentsCountText">0 תשלומים</span>
+                    </h4>
+                    <div id="repaymentsHistoryList" class="space-y-2">
+                        <!-- Dynamic Repayment History Items -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create New Loan Modal -->
+    <div id="newLoanModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden transition-all duration-200">
+        <div class="card-3d w-full max-w-md p-6 bg-white relative shadow-2xl">
+            <button onclick="closeNewLoanModal()" class="absolute top-4 left-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-lg font-bold mb-1 text-slate-900">הוספת הלוואה / חוב חדש</h3>
+            <p class="text-xs text-slate-400 mb-5">הזן את הפרטים למעקב ופרעון</p>
+            
+            <form onsubmit="saveNewLoan(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">סוג החוב</label>
+                    <select id="loanTypeSelect" class="w-full p-3 border border-slate-200 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-slate-900 bg-slate-50">
+                        <option value="given">אני מלווה כסף (חייבים לי)</option>
+                        <option value="taken">אני מקבל הלוואה (אני חייב)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">שם האדם / גורם</label>
+                    <input type="text" id="loanPersonInput" required placeholder="למשל: ישראל ישראלי" class="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-slate-900">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">סכום מקורי (₪)</label>
+                    <input type="number" id="loanAmountInput" required placeholder="5000" class="w-full p-3 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-slate-900">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">סיבת החוב / תיאור</label>
+                    <input type="text" id="loanReasonInput" placeholder="למשל: הלוואה לכיסוי שכ\"ל" class="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-slate-900">
+                </div>
+                <button type="submit" class="w-full py-3.5 btn-3d-dark rounded-xl text-sm font-bold mt-2">
+                    שמור הלוואה למערכת
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Auth Modal -->
+    <div id="authScreen" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="card-3d w-full max-w-md p-6 bg-white relative shadow-2xl">
+            <button onclick="closeAuthModal()" class="absolute top-4 left-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center mx-auto mb-3 shadow-md">
+                <i data-lucide="user-check" class="w-6 h-6"></i>
+            </div>
+            <h2 class="text-xl font-bold mb-1 text-center text-slate-900">סנכרון משתמש</h2>
+            <p class="text-xs text-slate-500 mb-6 text-center">הזן אימייל וטלפון לסנכרון בין מכשירים</p>
+            <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">דוא"ל</label>
+                    <input type="email" id="authEmail" required class="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-slate-900" placeholder="name@example.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">סיסמה</label>
+                    <input type="password" id="authPassword" required class="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-slate-900" placeholder="••••••••">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1">מספר טלפון</label>
+                    <input type="tel" id="authPhone" class="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-slate-900" placeholder="050-0000000">
+                </div>
+                <button type="submit" class="w-full py-3.5 btn-3d-dark rounded-xl text-sm font-bold mt-2">
+                    התחבר ושנכר נתונים
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Core Application State
+        let appData = {
+            user: null,
+            sources: {
+                bank: 0,
+                bit: 0,
+                cash: 0,
+                investments: 0
+            },
+            loans: [
+                {
+                    id: 'loan-1',
+                    person: 'ישראל ישראלי',
+                    type: 'given', // 'given' = חייבים לי | 'taken' = אני חייב
+                    originalAmount: 12500,
+                    reason: 'שכר לימוד סמסטר א\'',
+                    date: '2026-06-15',
+                    repayments: [
+                        { id: 'rep-1', amount: 2500, date: '2026-07-01', method: 'Bit', note: 'תשלום ראשון על חשבון החוב' },
+                        { id: 'rep-2', amount: 2000, date: '2026-08-10', method: 'העברה בנקאית', note: 'החזר חודש אוגוסט' }
+                    ]
+                },
+                {
+                    id: 'loan-2',
+                    person: 'דניאל כהן',
+                    type: 'given',
+                    originalAmount: 4000,
+                    reason: 'רכישת ציוד היקפי',
+                    date: '2026-09-01',
+                    repayments: [
+                        { id: 'rep-3', amount: 1000, date: '2026-09-15', method: 'מזומן', note: 'מקומנה' }
+                    ]
+                }
+            ]
+        };
+
+        let activeLoanId = null;
+
+        // On Page Load Initialization
+        document.addEventListener("DOMContentLoaded", () => {
+            lucide.createIcons();
+            loadState();
+            renderApp();
+            
+            // Set Today's Date in repayment input
+            const today = new Date().toISOString().split('T')[0];
+            const repayDateElem = document.getElementById('repayDateInput');
+            if (repayDateElem) repayDateElem.value = today;
+        });
+
+        // Local Storage Sync
+        function loadState() {
+            const saved = localStorage.getItem('clear_balance_app_data');
+            if (saved) {
+                try {
+                    appData = JSON.parse(saved);
+                } catch(e) {
+                    console.error('Error loading saved state:', e);
+                }
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('clear_balance_app_data', JSON.stringify(appData));
+            renderApp();
+        }
+
+        // Direct Sources Update
+        function updateSources() {
+            appData.sources.bank = Number(document.getElementById('bankBalance').value) || 0;
+            appData.sources.bit = Number(document.getElementById('bitBalance').value) || 0;
+            appData.sources.cash = Number(document.getElementById('cashBalance').value) || 0;
+            appData.sources.investments = Number(document.getElementById('investmentsBalance').value) || 0;
+            saveState();
+        }
+
+        function renderApp() {
+            // Update Money Sources Inputs
+            document.getElementById('bankBalance').value = appData.sources.bank || '';
+            document.getElementById('bitBalance').value = appData.sources.bit || '';
+            document.getElementById('cashBalance').value = appData.sources.cash || '';
+            document.getElementById('investmentsBalance').value = appData.sources.investments || '';
+
+            // Calculate Totals
+            let totalGivenRemaining = 0;
+            let activeLoansCount = 0;
+            let monthlyReceived = 0;
+            let activeRepaymentsCount = 0;
+
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+
+            const container = document.getElementById('loansListContainer');
+            container.innerHTML = '';
+
+            if (appData.loans.length === 0) {
+                container.innerHTML = `
+                    <div class="card-3d p-8 text-center text-slate-400 space-y-2">
+                        <i data-lucide="inbox" class="w-8 h-8 mx-auto text-slate-300"></i>
+                        <p class="text-sm font-medium">אין כרגע הלוואות או חובות רשומים במערכת</p>
+                    </div>
+                `;
+            }
+
+            appData.loans.forEach(loan => {
+                const totalPaid = loan.repayments.reduce((sum, r) => sum + Number(r.amount), 0);
+                const remaining = loan.originalAmount - totalPaid;
+                const progressPct = Math.min(100, Math.round((totalPaid / loan.originalAmount) * 100)) || 0;
+
+                if (loan.type === 'given' && remaining > 0) {
+                    totalGivenRemaining += remaining;
+                    activeLoansCount++;
+                }
+
+                // Sum up monthly received payments
+                loan.repayments.forEach(r => {
+                    const rDate = new Date(r.date);
+                    if (rDate.getMonth() === currentMonth && rDate.getFullYear() === currentYear) {
+                        monthlyReceived += Number(r.amount);
+                    }
+                });
+
+                if (remaining > 0) activeRepaymentsCount++;
+
+                // Render Individual Loan Card
+                const card = document.createElement('div');
+                card.className = 'card-3d p-5 cursor-pointer hover:border-slate-300 transition group';
+                card.onclick = () => openLoanDetailsModal(loan.id);
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full ${loan.type === 'given' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100'}">
+                                    ${loan.type === 'given' ? 'חייבים לי' : 'אני חייב'}
+                                </span>
+                                <span class="text-[11px] font-semibold text-slate-400">${loan.date || ''}</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-900 mt-1.5 group-hover:text-emerald-600 transition">${loan.person}</h4>
+                            <p class="text-xs text-slate-500 font-medium">${loan.reason || 'ללא תיאור'}</p>
+                        </div>
+                        <div class="text-left">
+                            <span class="text-[11px] font-semibold text-slate-400 block">יתרה לפרעון</span>
+                            <div class="text-xl font-black text-slate-900 mt-0.5">₪${remaining.toLocaleString()}</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5 mt-4 pt-3 border-t border-slate-100">
+                        <div class="flex justify-between text-xs font-medium">
+                            <span class="text-slate-500">התקדמות החזר</span>
+                            <span class="font-bold text-emerald-600">${progressPct}% <span class="text-slate-400 font-normal">(₪${totalPaid.toLocaleString()} מתוך ₪${loan.originalAmount.toLocaleString()})</span></span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden p-0.5">
+                            <div class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: ${progressPct}%"></div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            // Update Top Summary Cards
+            document.getElementById('totalToReceiveDisplay').innerText = `₪${totalGivenRemaining.toLocaleString()}`;
+            document.getElementById('loansCountTag').innerText = `${activeLoansCount} חובות פתוחים`;
+            document.getElementById('monthlyReceivedDisplay').querySelector('span').innerText = `₪${monthlyReceived.toLocaleString()}`;
+            document.getElementById('activeRepaymentsDisplay').innerText = activeRepaymentsCount;
+
+            lucide.createIcons();
+        }
+
+        function openLoanDetailsModal(id) {
+            activeLoanId = id;
+            const loan = appData.loans.find(l => l.id === id);
+            if (!loan) return;
+
+            const totalPaid = loan.repayments.reduce((sum, r) => sum + Number(r.amount), 0);
+            const remaining = loan.originalAmount - totalPaid;
+            const progressPct = Math.min(100, Math.round((totalPaid / loan.originalAmount) * 100)) || 0;
+
+            document.getElementById('loanModalHeader').innerHTML = `
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs font-bold ${loan.type === 'given' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'} px-2.5 py-1 rounded-full border border-emerald-100">
+                        ${loan.type === 'given' ? 'חייבים לי' : 'אני חייב'}
+                    </span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-900 tracking-tight">${loan.person}</h3>
+                <p class="text-xs text-slate-500 font-medium">${loan.reason || 'ללא תיאור'}</p>
+            `;
+
+            document.getElementById('modalRemainingText').innerText = `₪${remaining.toLocaleString()}`;
+            document.getElementById('modalOriginalText').innerText = `₪${loan.originalAmount.toLocaleString()}`;
+            document.getElementById('modalPaidText').innerText = `₪${totalPaid.toLocaleString()}`;
+            document.getElementById('modalProgressBar').style.width = `${progressPct}%`;
+
+            // Repayments List
+            const historyList = document.getElementById('repaymentsHistoryList');
+            historyList.innerHTML = '';
+            document.getElementById('repaymentsCountText').innerText = `${loan.repayments.length} תשלומים`;
+
+            if (loan.repayments.length === 0) {
+                historyList.innerHTML = `<div class="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-xl">טרם נרשמו החזרים עבור הלוואה זו</div>`;
+            } else {
+                loan.repayments.slice().reverse().forEach(r => {
+                    const item = document.createElement('div');
+                    item.className = 'p-3 bg-white border border-slate-200/80 rounded-xl flex justify-between items-center text-xs shadow-sm hover:border-slate-300 transition';
+                    item.innerHTML = `
+                        <div class="space-y-0.5">
+                            <div class="font-black text-slate-900 text-sm">+ ₪${Number(r.amount).toLocaleString()}</div>
+                            <div class="text-slate-400 font-medium">${r.date} • <span class="text-slate-600 font-semibold">${r.method}</span></div>
+                            ${r.note ? `<div class="text-slate-500 font-normal">${r.note}</div>` : ''}
+                        </div>
+                        <span class="text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg text-[11px] border border-emerald-100">
+                            שולם בהצלחה
+                        </span>
+                    `;
+                    historyList.appendChild(item);
+                });
+            }
+
+            document.getElementById('loanDetailsModal').classList.remove('hidden');
+        }
+
+        function closeLoanDetailsModal() {
+            document.getElementById('loanDetailsModal').classList.add('hidden');
+            activeLoanId = null;
+        }
+
+        function addRepaymentSubmit() {
+            if (!activeLoanId) return;
+            const amount = Number(document.getElementById('repayAmountInput').value);
+            const date = document.getElementById('repayDateInput').value;
+            const method = document.getElementById('repayMethodInput').value;
+            const note = document.getElementById('repayNoteInput').value;
+
+            if (!amount || amount <= 0) {
+                alert('נא להזין סכום תקין להחזר');
+                return;
+            }
+
+            const loan = appData.loans.find(l => l.id === activeLoanId);
+            if (loan) {
+                loan.repayments.push({
+                    id: 'rep-' + Date.now(),
+                    amount,
+                    date,
+                    method,
+                    note
+                });
+                saveState();
+                openLoanDetailsModal(activeLoanId); // Refresh Modal
+                document.getElementById('repayAmountInput').value = '';
+                document.getElementById('repayNoteInput').value = '';
+            }
+        }
+
+        // New Loan Modal Logic
+        function openNewLoanModal() {
+            document.getElementById('newLoanModal').classList.remove('hidden');
+        }
+        function closeNewLoanModal() {
+            document.getElementById('newLoanModal').classList.add('hidden');
+        }
+
+        function saveNewLoan(e) {
+            e.preventDefault();
+            const type = document.getElementById('loanTypeSelect').value;
+            const person = document.getElementById('loanPersonInput').value;
+            const originalAmount = Number(document.getElementById('loanAmountInput').value);
+            const reason = document.getElementById('loanReasonInput').value;
+
+            appData.loans.push({
+                id: 'loan-' + Date.now(),
+                person,
+                type,
+                originalAmount,
+                reason,
+                date: new Date().toISOString().split('T')[0],
+                repayments: []
+            });
+
+            saveState();
+            closeNewLoanModal();
+            
+            // Clear Inputs
+            document.getElementById('loanPersonInput').value = '';
+            document.getElementById('loanAmountInput').value = '';
+            document.getElementById('loanReasonInput').value = '';
+        }
+
+        // User Auth Screen Logic
+        function showAuthModal() {
+            if (appData.user) {
+                document.getElementById('authEmail').value = appData.user.email || '';
+                document.getElementById('authPhone').value = appData.user.phone || '';
+            }
+            document.getElementById('authScreen').classList.remove('hidden');
+        }
+        function closeAuthModal() {
+            document.getElementById('authScreen').classList.add('hidden');
+        }
+
+        function handleAuth(e) {
+            e.preventDefault();
+            appData.user = {
+                email: document.getElementById('authEmail').value,
+                phone: document.getElementById('authPhone').value
+            };
+            saveState();
+            closeAuthModal();
+            alert('הפרטים נשמרו בהצלחה! הנתונים מסונכרנים כעת.');
+        }
+
+        function exportToExcel() {
+            if (typeof XLSX === 'undefined') {
+                alert('ספריית האקסל לא נטענה עדיין. אנא נסה שוב בעוד כמה שניות.');
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+
+            // 1. Summary Sheet
+            const summaryData = [
+                ['דוח פיננסי מפורט - Clear Balance'],
+                ['תאריך הפקה:', new Date().toLocaleDateString('he-IL')],
+                ['משתמש רשום:', appData.user ? appData.user.email : 'אורח'],
+                [],
+                ['מקור כספי', 'יתרה (₪)'],
+                ['חשבון בנק', appData.sources.bank],
+                ['Bit', appData.sources.bit],
+                ['מזומן', appData.sources.cash],
+                ['השקעות ומניות', appData.sources.investments]
+            ];
+            const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+            XLSX.utils.book_append_sheet(wb, wsSummary, 'סיכום ומקורות');
+
+            // 2. Loans & Repayments Detailed Sheet
+            const loansRows = [
+                ['שם הלווה/מלווה', 'סוג חוב', 'סכום מקורי (₪)', 'סך הוחזר (₪)', 'יתרה לפרעון (₪)', 'סיבת החוב', 'תאריך החזר', 'סכום החזר (₪)', 'אמצעי תשלום', 'הערה']
+            ];
+
+            appData.loans.forEach(loan => {
+                const totalPaid = loan.repayments.reduce((sum, r) => sum + Number(r.amount), 0);
+                const remaining = loan.originalAmount - totalPaid;
+
+                if (loan.repayments.length === 0) {
+                    loansRows.push([
+                        loan.person,
+                        loan.type === 'given' ? 'חייבים לי' : 'אני חייב',
+                        loan.originalAmount,
+                        0,
+                        remaining,
+                        loan.reason || '',
+                        '-', '-', '-', '-'
+                    ]);
+                } else {
+                    loan.repayments.forEach(r => {
+                        loansRows.push([
+                            loan.person,
+                            loan.type === 'given' ? 'חייבים לי' : 'אני חייב',
+                            loan.originalAmount,
+                            totalPaid,
+                            remaining,
+                            loan.reason || '',
+                            r.date,
+                            r.amount,
+                            r.method,
+                            r.note || ''
+                        ]);
+                    });
+                }
+            });
+
+            const wsLoans = XLSX.utils.aoa_to_sheet(loansRows);
+            XLSX.utils.book_append_sheet(wb, wsLoans, 'פירוט הלוואות והחזרים');
+
+            // Download file
+            XLSX.writeFile(wb, 'Clear_Balance_Financial_Report.xlsx');
+        }
+    </script>
+</body>
+</html>
