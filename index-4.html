@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Clear Balance">
+    
+    <!-- PWA Web App Manifest Data URI -->
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%20%22Clear%20Balance%20-%20%D7%9E%D7%90%D7%96%D7%9F%20%D7%A0%D7%A7%D7%99%22%2C%20%22short_name%22%3A%20%22Clear%20Balance%22%2C%20%22start_url%22%3A%20%22.%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22background_color%22%3A%20%22%23f9fafb%22%2C%20%22theme_color%22%3A%20%22%23000000%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2527http%253A//www.w3.org/2000/svg%2527%2520viewBox%253D%25270%25200%252024%252024%2527%2520fill%253D%2527%2523000000%2527%253E%253Cpath%2520d%253D%2527M12%25202C6.48%25202%25202%25206.48%25202%252012s4.48%252010%252010%252010%252010-4.48%252010-10S17.52%25202%252012%25202zm0%252018c-4.41%25200-8-3.59-8-8s3.59-8%25208-8%25208%25203.59%25208%25208-3.59%25208-8%25208z%2527/%253E%253C/svg%253E%22%2C%20%22sizes%22%3A%20%22any%22%2C%20%22type%22%3A%20%22image/svg%2Bxml%22%7D%5D%7D">
+
+    <title>Clear Balance - מאזן נקי</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f6f6f7',
+                            100: '#e0e0e0',
+                            800: '#1e1e24',
+                            900: '#000000',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Assistant', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Assistant', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #111827; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #000000; }
+        .modal-active { overflow: hidden; }
+        button, input, select, label { touch-action: manipulation; }
+
+        /* Critical fallback: keep dialogs hidden and interactive even if Tailwind CDN fails. */
+        .hidden { display: none !important; pointer-events: none !important; }
+        .fixed.inset-0:not(.hidden) {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.6);
+            pointer-events: auto;
+        }
+        #editBalancesModal > div, #addDebtModal > div,
+        #addPaymentModal > div, #debtHistoryModal > div,
+        #addExpenseModal > div, #authModal > div,
+        #pwaModal > div, #confirmModal > div {
+            position: relative;
+            pointer-events: auto;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: #fff;
+            color: #111827;
+            border-radius: 1rem;
+            padding: 1.25rem;
+            width: min(100%, 34rem);
+            box-shadow: 0 20px 50px rgba(0,0,0,.25);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-full flex flex-col justify-between pb-20 md:pb-6">
+
+    <header class="bg-black text-white sticky top-0 z-30 shadow-md">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="bg-white text-black p-2 rounded-xl flex items-center justify-center shadow">
+                    <i class="fa-solid font-bold fa-scale-balanced text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight">Clear Balance</h1>
+                    <p class="text-xs text-gray-400">ניהול פיננסי חכם ומאוזן</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2 space-x-reverse">
+                <button onclick="openModal('authModal')" class="bg-gray-800 hover:bg-gray-700 text-xs px-3 py-1.5 rounded-lg border border-gray-700 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-user-circle"></i>
+                    <span id="userStatusText">מצב אורח</span>
+                </button>
+                <button onclick="openModal('pwaModal')" title="התקן אפליקציה" class="bg-gray-800 hover:bg-gray-700 text-xs p-2 rounded-lg border border-gray-700 transition text-gray-200">
+                    <i class="fa-solid fa-mobile-screen-button text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="bg-gray-900 border-t border-gray-800">
+            <div class="max-w-4xl mx-auto flex justify-around text-xs font-semibold">
+                <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn active py-3 px-2 border-b-2 border-white text-white flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-chart-line"></i> תמונה כללית
+                </button>
+                <button onclick="switchTab('debts')" id="tab-debts" class="tab-btn py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-hand-holding-dollar"></i> חובות והלוואות
+                </button>
+                <button onclick="switchTab('expenses')" id="tab-expenses" class="tab-btn py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-receipt"></i> הוצאות
+                </button>
+                <button onclick="switchTab('analytics')" id="tab-analytics" class="tab-btn py-3 px-2 border-b-2 border-transparent text-gray-400 hover:text-gray-200 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-chart-pie"></i> גרפים וניתוח
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto w-full px-4 py-6 flex-1 space-y-6">
+
+        <!-- TAB 1: OVERVIEW -->
+        <section id="sec-overview" class="space-y-6">
+            <!-- Total Net Worth Card -->
+            <div class="bg-black text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                <div class="absolute -left-6 -bottom-6 text-gray-800 opacity-30 pointer-events-none">
+                    <i class="fa-solid fa-wallet text-9xl"></i>
+                </div>
+                <div class="relative z-10 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                    <div>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 block mb-1">התמונה הפיננסית שלי</span>
+                        <h2 class="text-sm font-medium text-gray-300">סך הכסף בכל החשבונות</h2>
+                        <div class="text-3xl md:text-4xl font-black mt-2 tracking-tight flex items-center gap-1">
+                            <span id="totalNetWorth">₪ 0</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openModal('editBalancesModal')" class="bg-white text-black hover:bg-gray-100 font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow">
+                            <i class="fa-solid fa-pen-to-square"></i> עדכון יתרות
+                        </button>
+                        <button onclick="exportDataCSV()" class="bg-gray-800 hover:bg-gray-700 text-white font-medium text-xs px-3 py-2.5 rounded-xl border border-gray-700 transition flex items-center gap-1.5" title="ייצוא לקובץ Excel/CSV">
+                            <i class="fa-solid fa-file-csv"></i> ייצוא
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-800 text-xs text-gray-400 flex items-center justify-between">
+                    <span>* סכום המבוסס על דיווח עצמי בלבד</span>
+                    <span id="lastUpdatedTag">עודכן כעת</span>
+                </div>
+            </div>
+
+            <!-- Accounts Breakdown Grid -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-building-columns text-sm text-gray-700"></i> יתרות בחשבונות
+                    </h3>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="accountsGrid"></div>
+            </div>
+
+            <!-- Financial Summary Quick Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div onclick="switchTab('debts')" class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition cursor-pointer flex justify-between items-center">
+                    <div class="space-y-1">
+                        <span class="text-xs font-semibold text-gray-500">חובות והלוואות</span>
+                        <div class="flex gap-4 items-center">
+                            <div>
+                                <span class="text-xs text-gray-400 block">חייבים לי</span>
+                                <span id="summaryOwedToMe" class="text-base font-extrabold text-black">₪ 0</span>
+                            </div>
+                            <div class="border-r border-gray-200 pr-4">
+                                <span class="text-xs text-gray-400 block">אני חייב</span>
+                                <span id="summaryIOwe" class="text-base font-extrabold text-black">₪ 0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-100 p-3 rounded-xl text-black">
+                        <i class="fa-solid fa-chevron-left text-sm"></i>
+                    </div>
+                </div>
+
+                <div onclick="switchTab('expenses')" class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition cursor-pointer flex justify-between items-center">
+                    <div class="space-y-1">
+                        <span class="text-xs font-semibold text-gray-500">הוצאות החודש</span>
+                        <div class="flex gap-4 items-center">
+                            <div>
+                                <span class="text-xs text-gray-400 block">קבועות</span>
+                                <span id="summaryFixedExp" class="text-base font-extrabold text-black">₪ 0</span>
+                            </div>
+                            <div class="border-r border-gray-200 pr-4">
+                                <span class="text-xs text-gray-400 block">חד פעמיות</span>
+                                <span id="summaryOneTimeExp" class="text-base font-extrabold text-black">₪ 0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-100 p-3 rounded-xl text-black">
+                        <i class="fa-solid fa-chevron-left text-sm"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity Widget -->
+            <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-column"></i> יתרות החשבונות בפועל
+                    </h3>
+                    <span class="text-xs bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full font-medium">מתעדכן מהנתונים שלך</span>
+                </div>
+                <div class="h-48 w-full">
+                    <canvas id="overviewMiniChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: DEBTS AND LOANS -->
+        <section id="sec-debts" class="space-y-6 hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-black text-gray-900">חובות והלוואות</h2>
+                    <p class="text-xs text-gray-500">מעקב תיקי הלוואות, החזרים והיסטוריית תשלומים</p>
+                </div>
+                <button onclick="openModal('addDebtModal')" class="bg-black hover:bg-gray-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow w-full sm:w-auto justify-center">
+                    <i class="fa-solid fa-plus"></i> הוספת חוב או הלוואה
+                </button>
+            </div>
+
+            <div class="flex border-b border-gray-200 text-sm font-semibold gap-6">
+                <button onclick="filterDebts('all')" id="debtFilter-all" class="pb-2 border-b-2 border-black text-black">הכל</button>
+                <button onclick="filterDebts('owed_to_me')" id="debtFilter-owed_to_me" class="pb-2 border-b-2 border-transparent text-gray-500 hover:text-black">חייבים לי (<span id="cntOwedToMe">0</span>)</button>
+                <button onclick="filterDebts('i_owe')" id="debtFilter-i_owe" class="pb-2 border-b-2 border-transparent text-gray-500 hover:text-black">אני חייב (<span id="cntIOwe">0</span>)</button>
+            </div>
+
+            <div id="debtsContainer" class="space-y-4"></div>
+        </section>
+
+        <!-- TAB 3: EXPENSES -->
+        <section id="sec-expenses" class="space-y-6 hidden">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-black text-gray-900">ניהול הוצאות</h2>
+                    <p class="text-xs text-gray-500">ריכוז הוצאות קבועות וחד-פעמיות לניהול תקציב מדויק</p>
+                </div>
+                <button onclick="openModal('addExpenseModal')" class="bg-black hover:bg-gray-800 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow w-full sm:w-auto">
+                    <i class="fa-solid fa-plus"></i> הוספת הוצאה
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
+                    <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                        <div>
+                            <h3 class="font-bold text-black flex items-center gap-2">
+                                <i class="fa-solid fa-rotate text-sm"></i> הוצאות קבועות
+                            </h3>
+                            <p class="text-xs text-gray-400">מתחדשות מדי חודש</p>
+                        </div>
+                        <span id="totalFixedAmount" class="font-extrabold text-base text-black">₪ 0</span>
+                    </div>
+                    <div id="fixedExpensesList" class="space-y-2 max-h-80 overflow-y-auto pr-1"></div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-4">
+                    <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                        <div>
+                            <h3 class="font-bold text-black flex items-center gap-2">
+                                <i class="fa-solid fa-cart-shopping text-sm"></i> הוצאות חד-פעמיות
+                            </h3>
+                            <p class="text-xs text-gray-400">הוצאות שוטפות לחודש זה</p>
+                        </div>
+                        <span id="totalOneTimeAmount" class="font-extrabold text-base text-black">₪ 0</span>
+                    </div>
+                    <div id="oneTimeExpensesList" class="space-y-2 max-h-80 overflow-y-auto pr-1"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: ANALYTICS (COLORED CHARTS) -->
+        <section id="sec-analytics" class="space-y-6 hidden">
+            <div>
+                <h2 class="text-xl font-black text-gray-900">גרפים וניתוח פיננסי</h2>
+                <p class="text-xs text-gray-500">מבט מעמיק על התפלגות הכספים, מגמות והחזרי חובות</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm space-y-3">
+                    <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-column"></i> החזרי הלוואות לפי חודש
+                    </h3>
+                    <div class="h-56 w-full">
+                        <canvas id="chartIncomeVsExpense"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm space-y-3">
+                    <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie"></i> התפלגות הוצאות לפי קטגוריה
+                    </h3>
+                    <div class="h-56 w-full flex justify-center">
+                        <canvas id="chartExpensesCategory"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm space-y-3">
+                    <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line"></i> יתרת כל תיק חוב
+                    </h3>
+                    <div class="h-56 w-full">
+                        <canvas id="chartDebtsProgress"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm space-y-3">
+                    <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-trend-up"></i> תמונת מצב כספית נוכחית
+                    </h3>
+                    <div class="h-56 w-full">
+                        <canvas id="chartNetWorthTrend"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODALS CONTAINER -->
+    <!-- Modal 1: Edit Balances -->
+    <div id="editBalancesModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b pb-3 border-gray-100">
+                <h3 class="text-lg font-bold text-black flex items-center gap-2">
+                    <i class="fa-solid fa-wallet"></i> עדכון יתרות בחשבונות
+                </h3>
+                <button onclick="closeModal('editBalancesModal')" class="text-gray-400 hover:text-black p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <form id="editBalancesForm" onsubmit="handleSaveBalances(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">בנק (עו"ש / פיקדונות)</label>
+                    <input type="text" id="bal-bank" inputmode="decimal" autocomplete="off" placeholder="0 אם אין יתרה" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-black">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">מזומן</label>
+                    <input type="text" id="bal-cash" inputmode="decimal" autocomplete="off" placeholder="0 אם אין יתרה" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-black">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">ביט / PayBox</label>
+                    <input type="text" id="bal-apps" inputmode="decimal" autocomplete="off" placeholder="0 אם אין יתרה" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-black">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">חשבונות נוספים / השקעות</label>
+                    <input type="text" id="bal-other" inputmode="decimal" autocomplete="off" placeholder="0 אם אין יתרה" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-black">
+                </div>
+
+                <div class="pt-3 flex gap-2">
+                    <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-2.5 rounded-xl text-sm transition">
+                        שמירת יתרות
+                    </button>
+                    <button type="button" onclick="closeModal('editBalancesModal')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2.5 rounded-xl text-sm transition">
+                        ביטול
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Add Debt -->
+    <div id="addDebtModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-3 border-gray-100">
+                <h3 class="text-lg font-bold text-black flex items-center gap-2">
+                    <i class="fa-solid fa-file-invoice-dollar"></i> יצירת תיק חוב / הלוואה חדש
+                </h3>
+                <button onclick="closeModal('addDebtModal')" class="text-gray-400 hover:text-black p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="addDebtForm" onsubmit="handleAddDebt(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-gray-800 mb-1">כיוון ההלוואה</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="border border-gray-300 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-black transition has-[:checked]:border-black has-[:checked]:bg-gray-50">
+                            <input type="radio" name="debtType" value="owed_to_me" checked class="accent-black">
+                            <div>
+                                <span class="font-bold block text-gray-900">אני מלווה כסף</span>
+                                <span class="text-gray-500 text-[10px]">ומצפה לקבל אותו בחזרה</span>
+                            </div>
+                        </label>
+                        <label class="border border-gray-300 rounded-xl p-3 flex items-center gap-2 cursor-pointer hover:border-black transition has-[:checked]:border-black has-[:checked]:bg-gray-50">
+                            <input type="radio" name="debtType" value="i_owe" class="accent-black">
+                            <div>
+                                <span class="font-bold block text-gray-900">אני מקבל הלוואה</span>
+                                <span class="text-gray-500 text-[10px]">וצריך להחזיר אותה</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">שם האדם / הגוף</label>
+                    <input type="text" id="debtPersonName" placeholder="למשל: ישראל ישראלי" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black" required>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">סכום ההלוואה המקורי (₪)</label>
+                    <input type="text" inputmode="decimal" autocomplete="off" id="debtOriginalAmount" placeholder="5000" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black" required>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">תאריך מתן ההלוואה</label>
+                        <input type="date" id="debtStartDate" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-gray-700 mb-1">מועד החזר מתוכנן (אופציונלי)</label>
+                        <input type="date" id="debtDueDate" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black">
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 p-3 space-y-3">
+                    <label for="debtRepaymentType" class="block font-bold text-gray-800">סוג החזר</label>
+                    <select id="debtRepaymentType" onchange="toggleRepaymentSchedule()" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black">
+                        <option value="none">ללא לוח תשלומים / ללא דדליין</option>
+                        <option value="monthly">החזר חודשי קבוע</option>
+                        <option value="once">החזר חד־פעמי בתאריך מוגדר</option>
+                    </select>
+                    <div id="monthlyRepaymentFields" class="hidden grid grid-cols-2 gap-2">
+                        <div>
+                            <label for="debtMonthlyAmount" class="block font-bold text-gray-700 mb-1">סכום חודשי (₪)</label>
+                            <input type="text" inputmode="decimal" autocomplete="off" id="debtMonthlyAmount" placeholder="למשל 1000" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black">
+                        </div>
+                        <div>
+                            <label for="debtMonthlyDay" class="block font-bold text-gray-700 mb-1">יום בחודש לתשלום</label>
+                            <select id="debtMonthlyDay" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black">
+                                <option value="1">1 בחודש</option><option value="5">5 בחודש</option><option value="10">10 בחודש</option><option value="15">15 בחודש</option><option value="20">20 בחודש</option><option value="25">25 בחודש</option><option value="28">28 בחודש</option>
+                            </select>
+                        </div>
+                        <p class="col-span-2 text-[10px] text-gray-500">זהו תשלום מתוכנן בלבד. היתרה תקטן רק לאחר רישום תשלום בפועל.</p>
+                    </div>
+                    <p id="onceRepaymentHint" class="hidden text-[10px] text-gray-500">הזיני מועד החזר בשדה „מועד החזר מתוכנן” למעלה.</p>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">מטרת ההלוואה / הערה</label>
+                    <input type="text" id="debtPurpose" placeholder="הלוואה אישית, עזרה בשכר דירה..." class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black">
+                </div>
+
+                <div class="pt-3 flex gap-2">
+                    <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                        שמירת תיק הלוואה
+                    </button>
+                    <button type="button" onclick="closeModal('addDebtModal')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2.5 rounded-xl text-xs transition">
+                        ביטול
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 3: Add Payment -->
+    <div id="addPaymentModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b pb-3 border-gray-100">
+                <h3 class="text-base font-bold text-black flex items-center gap-2">
+                    <i class="fa-solid fa-money-bill-transfer"></i> רישום החזר תשלום חדש
+                </h3>
+                <button onclick="closeModal('addPaymentModal')" class="text-gray-400 hover:text-black p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="addPaymentForm" onsubmit="handleSavePayment(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="payDebtId">
+                
+                <div class="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                    <div class="font-bold text-gray-900" id="payModalTargetTitle">חוב של: -</div>
+                    <div class="text-gray-500 mt-0.5">יתרה נותרת: <span class="font-bold text-black" id="payModalRemaining">0 ₪</span></div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">סכום התשלום בפועל (₪)</label>
+                    <input type="text" inputmode="decimal" autocomplete="off" id="payAmount" placeholder="1000" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black" required>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">תאריך התשלום (אופציונלי)</label>
+                    <input type="date" id="payDate" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">אמצעי תשלום</label>
+                    <select id="payMethod" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black" required>
+                        <option value="Bit">ביט / Bit</option>
+                        <option value="העברה בנקאית">העברה בנקאית</option>
+                        <option value="מזומן">מזומן</option>
+                        <option value="PayBox">PayBox</option>
+                        <option value="אשראי">אשראי</option>
+                        <option value="אחר">אחר</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">הערה לתשלום</label>
+                    <input type="text" id="payNote" placeholder="החזר חלקי / תשלום ראשון..." class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black">
+                </div>
+
+                <div class="pt-2 flex gap-2">
+                    <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                        אישור ועדכון יתרה
+                    </button>
+                    <button type="button" onclick="closeModal('addPaymentModal')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2.5 rounded-xl text-xs transition">
+                        ביטול
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 4: Debt History -->
+    <div id="debtHistoryModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center border-b pb-3 border-gray-100">
+                <div>
+                    <h3 class="text-base font-black text-black" id="histModalPerson">תיק הלוואה</h3>
+                    <p class="text-xs text-gray-500" id="histModalSub">היסטוריית החזרים ותשלומים</p>
+                </div>
+                <button onclick="closeModal('debtHistoryModal')" class="text-gray-400 hover:text-black p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 grid grid-cols-3 gap-2 text-center">
+                <div>
+                    <span class="text-[10px] text-gray-500 block">סכום מקורי</span>
+                    <span class="font-extrabold text-xs text-gray-800" id="histModalOriginal">₪ 0</span>
+                </div>
+                <div>
+                    <span class="text-[10px] text-gray-500 block">הוחזר עד היום</span>
+                    <span class="font-extrabold text-xs text-black" id="histModalReturned">₪ 0</span>
+                </div>
+                <div>
+                    <span class="text-[10px] text-gray-500 block">יתרה לפרעון</span>
+                    <span class="font-extrabold text-xs text-black" id="histModalRemaining">₪ 0</span>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto space-y-2 pr-1" id="histModalPaymentsList"></div>
+
+            <div class="pt-3 border-t border-gray-100 flex justify-end">
+                <button onclick="closeModal('debtHistoryModal')" class="bg-black text-white px-5 py-2 rounded-xl text-xs font-bold">
+                    סגור
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 5: Add Expense -->
+    <div id="addExpenseModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative">
+            <div class="flex justify-between items-center border-b pb-3 border-gray-100">
+                <h3 class="text-base font-bold text-black flex items-center gap-2">
+                    <i class="fa-solid fa-receipt"></i> הוספת הוצאה חדשה
+                </h3>
+                <button onclick="closeModal('addExpenseModal')" class="text-gray-400 hover:text-black p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="addExpenseForm" onsubmit="handleAddExpense(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">סוג הוצאה</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="border border-gray-300 rounded-xl p-2.5 text-center cursor-pointer hover:border-black transition has-[:checked]:border-black has-[:checked]:bg-gray-50">
+                            <input type="radio" name="expType" value="fixed" checked class="accent-black">
+                            <span class="font-bold text-gray-900 mr-1">הוצאה קבועה</span>
+                        </label>
+                        <label class="border border-gray-300 rounded-xl p-2.5 text-center cursor-pointer hover:border-black transition has-[:checked]:border-black has-[:checked]:bg-gray-50">
+                            <input type="radio" name="expType" value="one_time" class="accent-black">
+                            <span class="font-bold text-gray-900 mr-1">חד-פעמית</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">תיאור / שם ההוצאה</label>
+                    <input type="text" id="expTitle" placeholder="שכירות, אינטרנט, קניות בסופר..." class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black" required>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">סכום ההוצאה (₪)</label>
+                    <input type="text" inputmode="decimal" autocomplete="off" id="expAmount" placeholder="250" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black" required>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-gray-700 mb-1">קטגוריה</label>
+                    <select id="expCategory" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-black">
+                        <option value="דיור ותחזוקה">דיור ותחזוקה</option>
+                        <option value="מזון וקניות">מזון וקניות</option>
+                        <option value="תקשורת וחשבונות">תקשורת וחשבונות</option>
+                        <option value="רכב ותחבורה">רכב ותחבורה</option>
+                        <option value="פנאי ובילויים">פנאי ובילויים</option>
+                        <option value="שונות">שונות</option>
+                    </select>
+                </div>
+
+                <div class="pt-2 flex gap-2">
+                    <button type="submit" class="w-full bg-black hover:bg-gray-800 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                        שמירת הוצאה
+                    </button>
+                    <button type="button" onclick="closeModal('addExpenseModal')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2.5 rounded-xl text-xs transition">
+                        ביטול
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 6: Auth / Guest Mode -->
+    <div id="authModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl relative text-center">
+            <div class="w-12 h-12 bg-black text-white rounded-2xl mx-auto flex items-center justify-center text-xl shadow">
+                <i class="fa-solid fa-user-lock"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-black">מצב חשבון משתמש</h3>
+                <p class="text-xs text-gray-500 mt-1">כעת אתם פועלים ב"מצב אורח" - הנתונים נשמרים בדפדפן של מכשיר זה בלבד, ללא הצפנה וללא סנכרון בין מכשירים. מומלץ להוריד גיבוי מדי פעם.</p>
+            </div>
+            <div class="space-y-2 pt-2">
+                <button onclick="downloadBackup()" class="w-full bg-black text-white py-2.5 rounded-xl text-xs font-bold shadow hover:bg-gray-800 transition">
+                    הורדת גיבוי נתונים (JSON)
+                </button>
+                <button onclick="document.getElementById('restoreFileInput').click()" class="w-full bg-gray-100 text-gray-700 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-200 transition">
+                    שחזור מקובץ גיבוי
+                </button>
+                <input type="file" id="restoreFileInput" accept=".json,application/json" class="hidden" onchange="handleRestoreFile(event)">
+                <button onclick="closeModal('authModal')" class="w-full bg-gray-100 text-gray-700 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-200 transition">
+                    המשך במצב אורח
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 7: PWA Modal -->
+    <div id="pwaModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl relative text-center">
+            <div class="w-12 h-12 bg-black text-white rounded-2xl mx-auto flex items-center justify-center text-xl shadow">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-black">התקנת האפליקציה בטלפון</h3>
+                <p class="text-xs text-gray-500 mt-2 leading-relaxed">
+                    כדי להוסיף את <strong>Clear Balance</strong> במסך הבית של הטלפון כאפליקציה עצמאית:
+                </p>
+                <div class="bg-gray-50 p-3 rounded-xl text-right text-xs text-gray-700 mt-3 space-y-1.5 border border-gray-200">
+                    <p>1. לחצו על תפריט הדפדפן (3 נקודות).</p>
+                    <p>2. בחרו באפשרות <strong>"התקנת אפליקציה"</strong> או <strong>"הוסף למסך הבית"</strong>.</p>
+                </div>
+            </div>
+            <button onclick="closeModal('pwaModal')" class="w-full bg-black text-white py-2.5 rounded-xl text-xs font-bold">
+                הבנתי, תודה
+            </button>
+        </div>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl relative text-center">
+            <div class="w-12 h-12 bg-black text-white rounded-2xl mx-auto flex items-center justify-center text-xl shadow">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-black" id="confirmTitle">אישור פעולה</h3>
+                <p class="text-xs text-gray-500 mt-1" id="confirmMsg">האם אתה בטוח שברצונך לבצע פעולה זו?</p>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button id="confirmYesBtn" class="w-full bg-black text-white py-2.5 rounded-xl text-xs font-bold shadow hover:bg-gray-800 transition">אישור</button>
+                <button onclick="closeModal('confirmModal')" class="w-full bg-gray-100 text-gray-700 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-200 transition">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Box -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-black text-white px-5 py-2.5 rounded-2xl shadow-xl text-xs font-bold transition-all duration-300 opacity-0 pointer-events-none z-50 flex items-center gap-2">
+        <i class="fa-solid fa-circle-check text-white"></i>
+        <span id="toastMsg">הודעה</span>
+        <button id="toastUndoBtn" type="button" class="hidden mr-2 underline font-extrabold">בטל</button>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'clear_balance_state';
+        const DEFAULT_STATE = {
+            balances: { bank: 0, cash: 0, apps: 0, other: 0 },
+            debts: [],
+            expenses: [],
+            updatedAt: ''
+        };
+
+        // ---- Money helpers: all sums are done in agorot (integer cents) to avoid float drift ----
+        const toCents = n => Math.round((Number(n) || 0) * 100);
+        const fromCents = c => c / 100;
+        const sumMoney = list => fromCents(list.reduce((s, n) => s + toCents(n), 0));
+
+        // Accepts "125.50", "125,50", "1,250", "1,250.50", "1.250,50", "₪ 100". Returns null if invalid.
+        function parseAmount(raw, opts) {
+            const allowNegative = !!(opts && opts.allowNegative);
+            if (raw === null || raw === undefined) return null;
+            let s = String(raw).trim().replace(/[\s₪\u200e\u200f]/g, '');
+            if (!s) return null;
+            let sign = 1;
+            if (s[0] === '-') { if (!allowNegative) return null; sign = -1; s = s.slice(1); }
+            const lastComma = s.lastIndexOf(','), lastDot = s.lastIndexOf('.');
+            if (lastComma > -1 && lastDot > -1) {
+                const dec = lastComma > lastDot ? ',' : '.';
+                const thou = dec === ',' ? '.' : ',';
+                s = s.split(thou).join('').replace(dec, '.');
+            } else if (lastComma > -1) {
+                s = /^\d{1,3}(,\d{3})+$/.test(s) ? s.replace(/,/g, '') : s.replace(',', '.');
+            }
+            if (!/^(\d+\.?\d{0,2}|\.\d{1,2})$/.test(s)) return null;
+            const n = Math.round(parseFloat(s) * 100) / 100;
+            return isFinite(n) ? sign * n : null;
+        }
+
+        function esc(v) {
+            return String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+        const isDateStr = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
+        function todayStr() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+        const newId = prefix => prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+        const byDateDesc = (a, b) => String(b.date || '').localeCompare(String(a.date || ''));
+
+        function debtStats(d) {
+            const paid = sumMoney((d.payments || []).map(p => p.amount));
+            const orig = Number(d.originalAmount) || 0;
+            const remaining = Math.max(0, fromCents(toCents(orig) - toCents(paid)));
+            const percent = orig > 0 ? Math.min(100, Math.floor(toCents(paid) * 100 / toCents(orig))) : 0;
+            return { paid, orig, remaining, percent };
+        }
+
+        // Validates and cleans any state object (saved data, imported backup). Returns null if not usable.
+        function normalizeState(src) {
+            if (!src || typeof src !== 'object' || Array.isArray(src)) return null;
+            const b = (src.balances && typeof src.balances === 'object') ? src.balances : {};
+            const bal = k => { const n = Number(b[k]); return isFinite(n) ? Math.round(n * 100) / 100 : 0; };
+            const used = new Set();
+            const uid = (id, prefix) => {
+                let v = /^[A-Za-z0-9_-]{1,64}$/.test(String(id || '')) ? String(id) : '';
+                if (!v || used.has(v)) v = newId(prefix);
+                used.add(v);
+                return v;
+            };
+            const str = (v, max) => String(v === null || v === undefined ? '' : v).slice(0, max || 200);
+            const pos = v => { const n = Number(v); return isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : 0; };
+            const dt = v => { const t = String(v || '').slice(0, 10); return isDateStr(t) ? t : ''; };
+            const debts = (Array.isArray(src.debts) ? src.debts : []).filter(d => d && typeof d === 'object').map(d => ({
+                id: uid(d.id, 'debt-'),
+                personName: str(d.personName) || 'ללא שם',
+                type: d.type === 'i_owe' ? 'i_owe' : 'owed_to_me',
+                originalAmount: pos(d.originalAmount),
+                startDate: dt(d.startDate),
+                dueDate: dt(d.dueDate),
+                repaymentType: ['none', 'monthly', 'once'].includes(d.repaymentType) ? d.repaymentType : (dt(d.dueDate) ? 'once' : 'none'),
+                monthlyAmount: pos(d.monthlyAmount),
+                monthlyDay: Math.min(31, Math.max(1, Number(d.monthlyDay) || 1)),
+                purpose: str(d.purpose),
+                payments: (Array.isArray(d.payments) ? d.payments : []).filter(p => p && typeof p === 'object' && pos(p.amount) > 0).map(p => ({
+                    id: uid(p.id, 'pay-'), date: dt(p.date), amount: pos(p.amount), method: str(p.method, 50) || 'אחר', note: str(p.note)
+                }))
+            }));
+            const expenses = (Array.isArray(src.expenses) ? src.expenses : []).filter(e => e && typeof e === 'object' && pos(e.amount) > 0).map(e => ({
+                id: uid(e.id, 'exp-'),
+                title: str(e.title) || 'ללא תיאור',
+                amount: pos(e.amount),
+                type: e.type === 'fixed' ? 'fixed' : 'one_time',
+                category: str(e.category, 60) || 'שונות',
+                date: dt(e.date)
+            }));
+            const upd = str(src.updatedAt, 40);
+            return {
+                balances: { bank: bal('bank'), cash: bal('cash'), apps: bal('apps'), other: bal('other') },
+                debts, expenses,
+                updatedAt: isNaN(Date.parse(upd)) ? '' : upd
+            };
+        }
+
+        function loadAppState() {
+            let raw = null;
+            try {
+                raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const norm = normalizeState(JSON.parse(raw));
+                    if (norm) return norm;
+                    throw new Error('Unexpected data shape');
+                }
+            } catch (err) {
+                console.warn('Saved app data could not be read; starting empty.', err);
+                // Keep the unreadable original so it is never silently overwritten.
+                try { if (raw) localStorage.setItem(STORAGE_KEY + '_unreadable_copy', raw); } catch (e2) {}
+            }
+            return JSON.parse(JSON.stringify(DEFAULT_STATE));
+        }
+
+        let appState = loadAppState();
+
+        function saveState() {
+            appState.updatedAt = new Date().toISOString();
+            let ok = true;
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+            } catch (err) {
+                ok = false;
+                console.error('Could not save app data:', err);
+                showToast('לא ניתן לשמור כרגע. בדוק מקום פנוי או הרשאות אחסון בדפדפן.');
+            }
+            renderAll();
+            return ok;
+        }
+
+        function formatILS(num) {
+            return '₪ ' + (Number(num) || 0).toLocaleString('he-IL', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        }
+
+        function formatDate(dateStr) {
+            if (!isDateStr(dateStr)) return 'ללא תאריך';
+            const [y, m, d] = dateStr.split('-').map(Number);
+            return new Date(y, m - 1, d).toLocaleDateString('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        }
+
+        let toastTimer = null;
+        function hideToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('opacity-100');
+            toast.classList.add('opacity-0', 'pointer-events-none');
+            const ub = document.getElementById('toastUndoBtn');
+            ub.classList.add('hidden');
+            ub.onclick = null;
+        }
+        // Optional second argument: a function that really reverses the action. The "בטל" button is only shown when one is given.
+        function showToast(msg, undo) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = msg;
+            const ub = document.getElementById('toastUndoBtn');
+            if (typeof undo === 'function') {
+                ub.classList.remove('hidden');
+                ub.onclick = () => { ub.onclick = null; hideToast(); undo(); };
+            } else {
+                ub.classList.add('hidden');
+                ub.onclick = null;
+            }
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            toast.classList.add('opacity-100');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(hideToast, typeof undo === 'function' ? 7000 : 3000);
+        }
+
+        function showConfirm(title, msg, onConfirm) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMsg').textContent = msg;
+            const yesBtn = document.getElementById('confirmYesBtn');
+            yesBtn.onclick = function() {
+                closeModal('confirmModal');
+                onConfirm();
+            };
+            openModal('confirmModal');
+        }
+
+        function openModal(id, focusKey) {
+            document.getElementById(id).classList.remove('hidden');
+            document.body.classList.add('modal-active');
+            
+            if (id === 'editBalancesModal') {
+                document.getElementById('bal-bank').value = appState.balances.bank;
+                document.getElementById('bal-cash').value = appState.balances.cash;
+                document.getElementById('bal-apps').value = appState.balances.apps;
+                document.getElementById('bal-other').value = appState.balances.other;
+                if (focusKey) setTimeout(() => { const el = document.getElementById('bal-' + focusKey); if (el) el.focus(); }, 0);
+            } else if (id === 'addDebtModal') {
+                // Start date is optional; do not invent a date when the user leaves it blank.
+                const repaymentType = document.getElementById('debtRepaymentType');
+                if (repaymentType) repaymentType.value = 'none';
+                const monthlyAmount = document.getElementById('debtMonthlyAmount');
+                if (monthlyAmount) monthlyAmount.value = '';
+                toggleRepaymentSchedule();
+            } else if (id === 'addPaymentModal') {
+                // Payment date stays empty unless the user chooses one.
+            }
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            if (!document.querySelector('.fixed.inset-0:not(.hidden)')) document.body.classList.remove('modal-active');
+        }
+
+        function switchTab(tabName) {
+            const tabs = ['overview', 'debts', 'expenses', 'analytics'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const sec = document.getElementById(`sec-${t}`);
+                if (t === tabName) {
+                    btn.classList.add('border-white', 'text-white');
+                    btn.classList.remove('border-transparent', 'text-gray-400');
+                    sec.classList.remove('hidden');
+                } else {
+                    btn.classList.remove('border-white', 'text-white');
+                    btn.classList.add('border-transparent', 'text-gray-400');
+                    sec.classList.add('hidden');
+                }
+            });
+            if (tabName === 'analytics') {
+                renderCharts();
+            }
+        }
+
+        function renderOverview() {
+            const b = appState.balances;
+            const totalWorth = sumMoney([b.bank, b.cash, b.apps, b.other]);
+            document.getElementById('totalNetWorth').textContent = formatILS(totalWorth);
+            document.getElementById('lastUpdatedTag').textContent = appState.updatedAt ? 'עודכן: ' + new Date(appState.updatedAt).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' }) : 'טרם נשמרו נתונים';
+
+            const accounts = [
+                { key: 'bank', title: 'בנק', amount: b.bank, icon: 'fa-landmark' },
+                { key: 'cash', title: 'מזומן', amount: b.cash, icon: 'fa-money-bill-1' },
+                { key: 'apps', title: 'ביט / PayBox', amount: b.apps, icon: 'fa-mobile-screen' },
+                { key: 'other', title: 'חשבונות נוספים', amount: b.other, icon: 'fa-vault' }
+            ];
+
+            const grid = document.getElementById('accountsGrid');
+            grid.innerHTML = accounts.map(a => `
+                <div onclick="openModal('editBalancesModal', '${a.key}')" class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between cursor-pointer hover:border-gray-400 transition">
+                    <div class="flex items-center justify-between text-gray-500 mb-2">
+                        <span class="text-xs font-bold text-gray-700">${a.title}</span>
+                        <i class="fa-solid ${a.icon} text-black text-sm"></i>
+                    </div>
+                    <div class="text-lg font-black text-black tracking-tight">${formatILS(a.amount)}</div>
+                </div>
+            `).join('');
+
+            let owedToMeTotal = 0;
+            let iOweTotal = 0;
+
+            let owedC = 0, oweC = 0;
+            appState.debts.forEach(d => {
+                const c = toCents(debtStats(d).remaining);
+                if (d.type === 'owed_to_me') owedC += c; else oweC += c;
+            });
+            owedToMeTotal = fromCents(owedC);
+            iOweTotal = fromCents(oweC);
+
+            document.getElementById('summaryOwedToMe').textContent = formatILS(owedToMeTotal);
+            document.getElementById('summaryIOwe').textContent = formatILS(iOweTotal);
+
+            const fixedExp = sumMoney(appState.expenses.filter(e => e.type === 'fixed').map(e => e.amount));
+            const oneTimeExp = sumMoney(appState.expenses.filter(e => e.type === 'one_time').map(e => e.amount));
+
+            document.getElementById('summaryFixedExp').textContent = formatILS(fixedExp);
+            document.getElementById('summaryOneTimeExp').textContent = formatILS(oneTimeExp);
+        }
+
+        let currentDebtFilter = 'all';
+
+        function filterDebts(type) {
+            currentDebtFilter = type;
+            ['all', 'owed_to_me', 'i_owe'].forEach(t => {
+                const btn = document.getElementById(`debtFilter-${t}`);
+                if (t === type) {
+                    btn.className = 'pb-2 border-b-2 border-black text-black font-bold';
+                } else {
+                    btn.className = 'pb-2 border-b-2 border-transparent text-gray-500 hover:text-black font-medium';
+                }
+            });
+            renderDebts();
+        }
+
+        function renderDebts() {
+            const container = document.getElementById('debtsContainer');
+            
+            const cntOwed = appState.debts.filter(d => d.type === 'owed_to_me').length;
+            const cntIowe = appState.debts.filter(d => d.type === 'i_owe').length;
+            document.getElementById('cntOwedToMe').textContent = cntOwed;
+            document.getElementById('cntIOwe').textContent = cntIowe;
+
+            const filtered = appState.debts.filter(d => {
+                if (currentDebtFilter === 'all') return true;
+                return d.type === currentDebtFilter;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl p-8 text-center text-gray-400 border border-gray-200">
+                        <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
+                        <p class="text-xs">אין רשומות בקטגוריה זו</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(d => {
+                const { paid: totalPaid, remaining, percent } = debtStats(d);
+                const isOwed = d.type === 'owed_to_me';
+                const sortedPayments = [...(d.payments || [])].sort(byDateDesc);
+
+                return `
+                    <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm space-y-4 hover:border-gray-400 transition">
+                        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 pb-3 border-b border-gray-100">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-black uppercase px-2 py-0.5 rounded-full ${isOwed ? 'bg-black text-white' : 'bg-gray-200 text-gray-800'}">
+                                        ${isOwed ? 'חייבים לי' : 'אני חייב'}
+                                    </span>
+                                    <span class="text-xs font-semibold text-gray-400">${esc(d.purpose || 'חוב / הלוואה')}</span>
+                                </div>
+                                <h3 class="text-lg font-black text-black mt-1">${esc(d.personName)}</h3>
+                                ${d.repaymentType === 'monthly' && Number(d.monthlyAmount) > 0 ? `<p class="text-[11px] text-gray-600 mt-1">החזר מתוכנן: ${formatILS(d.monthlyAmount)} בכל חודש, ביום ${Number(d.monthlyDay) || 1}</p>` : ''}
+                                ${d.dueDate ? `<p class="text-[11px] text-gray-600 mt-1">מועד החזר מתוכנן: ${formatDate(d.dueDate)}</p>` : ''}
+                                ${!d.dueDate && d.repaymentType !== 'monthly' ? '<p class="text-[10px] text-gray-400 mt-1">ללא דדליין</p>' : ''}
+                            </div>
+                            
+                            <div class="flex items-center gap-2">
+                                <button onclick="openPaymentModal('${esc(d.id)}')" class="bg-black hover:bg-gray-800 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow">
+                                    <i class="fa-solid fa-plus text-xs"></i> הוספת החזר / תשלום
+                                </button>
+                                <button onclick="promptDeleteDebt('${esc(d.id)}')" class="text-gray-400 hover:text-black p-2 text-xs transition" title="מחיקת תיק הלוואה">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-3">
+                            <div class="flex justify-between items-end">
+                                <div>
+                                    <span class="text-[11px] font-semibold text-gray-500 block">יתרה שנותרה להחזיר</span>
+                                    <span class="text-2xl font-black text-black tracking-tight">${formatILS(remaining)}</span>
+                                </div>
+                                <div class="text-left">
+                                    <span class="text-[11px] font-semibold text-gray-500 block">הוחזר עד היום</span>
+                                    <span class="text-sm font-extrabold text-black">${formatILS(totalPaid)}</span>
+                                    <span class="text-[10px] text-gray-400 block">מתוך ${formatILS(d.originalAmount)}</span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-1">
+                                <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                    <div class="bg-black h-2.5 rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+                                </div>
+                                <div class="flex justify-between text-[10px] font-bold text-gray-500">
+                                    <span>${percent}% מהחוב נפדה</span>
+                                    <span>${remaining === 0 ? 'נפרע במלואו ✓' : 'פעיל'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold text-gray-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-clock-rotate-left text-black"></i> היסטוריית החזרים ותשלומים
+                                </span>
+                                <button onclick="openDebtHistoryModal('${esc(d.id)}')" class="text-xs font-bold text-gray-600 hover:text-black underline">
+                                    לצפייה בכל הפירוט (${d.payments ? d.payments.length : 0})
+                                </button>
+                            </div>
+
+                            ${sortedPayments.length === 0 ? `
+                                <p class="text-xs text-gray-400 py-2">טרם נרשמו החזרים בתיק זה</p>
+                            ` : `
+                                <div class="space-y-1.5">
+                                    ${sortedPayments.slice(0, 3).map(p => `
+                                        <div class="flex items-center justify-between bg-white border border-gray-100 p-2.5 rounded-xl text-xs hover:border-gray-300 transition">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-bold text-black">+${formatILS(p.amount)}</span>
+                                                <span class="text-[10px] bg-gray-100 px-2 py-0.5 rounded-md font-semibold text-gray-700">${esc(p.method)}</span>
+                                            </div>
+                                            <div class="text-left text-gray-500">
+                                                <span class="font-medium text-gray-700 block">${formatDate(p.date)}</span>
+                                                ${p.note ? `<span class="text-[10px] text-gray-400 block">${esc(p.note)}</span>` : ''}
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderExpenses() {
+            const fixedList = document.getElementById('fixedExpensesList');
+            const oneTimeList = document.getElementById('oneTimeExpensesList');
+
+            const fixed = appState.expenses.filter(e => e.type === 'fixed');
+            const oneTime = appState.expenses.filter(e => e.type === 'one_time');
+
+            document.getElementById('totalFixedAmount').textContent = formatILS(sumMoney(fixed.map(e => e.amount)));
+            document.getElementById('totalOneTimeAmount').textContent = formatILS(sumMoney(oneTime.map(e => e.amount)));
+
+            const renderItem = (e) => `
+                <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100 hover:border-gray-300 transition text-xs">
+                    <div>
+                        <span class="font-bold text-gray-900 block">${esc(e.title)}</span>
+                        <span class="text-[10px] text-gray-500">${esc(e.category || 'כללי')}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-extrabold text-black">${formatILS(e.amount)}</span>
+                        <button onclick="deleteExpense('${esc(e.id)}')" class="text-gray-400 hover:text-black transition">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            fixedList.innerHTML = fixed.length ? fixed.map(renderItem).join('') : '<p class="text-xs text-gray-400 py-2">אין הוצאות קבועות</p>';
+            oneTimeList.innerHTML = oneTime.length ? oneTime.map(renderItem).join('') : '<p class="text-xs text-gray-400 py-2">אין הוצאות חד-פעמיות</p>';
+        }
+
+        let charts = {};
+
+        function renderCharts() {
+            if (typeof Chart === 'undefined') return; // Chart.js failed to load: keep the rest of the app working
+            // Every chart is calculated from appState. No demonstration/hard-coded values.
+            const colors = {
+                blue: '#2563eb', purple: '#7c3aed', emerald: '#059669', amber: '#d97706',
+                pink: '#db2777', cyan: '#0891b2', rose: '#e11d48', indigo: '#4f46e5', gray: '#9ca3af'
+            };
+            const money = value => Math.max(0, Number(value) || 0);
+            const remaining = debt => debtStats(debt).remaining;
+            const balances = appState.balances || {};
+            const accountLabels = ['בנק', 'מזומן', 'ביט / PayBox', 'חשבונות נוספים'];
+            const accountValues = [balances.bank, balances.cash, balances.apps, balances.other].map(v => Number(v) || 0);
+            const debts = Array.isArray(appState.debts) ? appState.debts : [];
+            const expenses = Array.isArray(appState.expenses) ? appState.expenses : [];
+            const allPayments = debts.flatMap(debt => (Array.isArray(debt.payments) ? debt.payments : [])
+                .map(payment => ({ ...payment, debtType: debt.type })));
+
+            // Recent months are derived only from dated payment records actually saved by the user.
+            const now = new Date();
+            const months = [];
+            for (let offset = 5; offset >= 0; offset--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+                months.push({
+                    key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+                    label: d.toLocaleDateString('he-IL', { month: 'short', year: '2-digit' })
+                });
+            }
+            const r2 = v => Math.round(v * 100) / 100;
+            const incomingRaw = months.map(month => allPayments.reduce((sum, payment) => {
+                const date = /^\d{4}-\d{2}/.test(String(payment.date || '')) ? String(payment.date).slice(0, 7) : '';
+                return sum + (date === month.key && payment.debtType === 'owed_to_me' ? money(payment.amount) : 0);
+            }, 0));
+            const outgoingRaw = months.map(month => allPayments.reduce((sum, payment) => {
+                const date = /^\d{4}-\d{2}/.test(String(payment.date || '')) ? String(payment.date).slice(0, 7) : '';
+                return sum + (date === month.key && payment.debtType === 'i_owe' ? money(payment.amount) : 0);
+            }, 0));
+
+            const incomingByMonth = incomingRaw.map(r2), outgoingByMonth = outgoingRaw.map(r2);
+            // Expense distribution reflects all currently recorded expenses by category.
+            const categoryTotals = {};
+            expenses.forEach(expense => {
+                const category = String(expense.category || 'ללא קטגוריה');
+                categoryTotals[category] = (categoryTotals[category] || 0) + money(expense.amount);
+            });
+            const categoryEntries = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+            const categoryPalette = [colors.purple, colors.pink, colors.cyan, colors.emerald, colors.amber, colors.blue, colors.rose, colors.indigo, colors.gray];
+
+            const assets = sumMoney(accountValues);
+            const owedToMe = debts.filter(debt => debt.type === 'owed_to_me').reduce((sum, debt) => sum + toCents(remaining(debt)), 0) / 100;
+            const iOwe = debts.filter(debt => debt.type === 'i_owe').reduce((sum, debt) => sum + toCents(remaining(debt)), 0) / 100;
+
+            const chartSpecs = [
+                {
+                    key: 'overview', id: 'overviewMiniChart', type: 'bar',
+                    labels: accountLabels,
+                    datasets: [{ label: 'יתרה נוכחית (₪)', data: accountValues, backgroundColor: [colors.blue, colors.purple, colors.emerald, colors.amber], borderRadius: 6 }]
+                },
+                {
+                    key: 'incExp', id: 'chartIncomeVsExpense', type: 'bar',
+                    labels: months.map(month => month.label),
+                    datasets: [
+                        { label: 'החזרים שהתקבלו (₪)', data: incomingByMonth, backgroundColor: colors.emerald, borderRadius: 6 },
+                        { label: 'החזרים ששולמו (₪)', data: outgoingByMonth, backgroundColor: colors.rose, borderRadius: 6 }
+                    ]
+                },
+                {
+                    key: 'cat', id: 'chartExpensesCategory', type: 'doughnut',
+                    labels: categoryEntries.length ? categoryEntries.map(entry => entry[0]) : ['אין הוצאות רשומות'],
+                    datasets: [{ label: 'הוצאות רשומות (₪)', data: categoryEntries.length ? categoryEntries.map(entry => r2(entry[1])) : [1], backgroundColor: categoryEntries.length ? categoryEntries.map((_, index) => categoryPalette[index % categoryPalette.length]) : [colors.gray] }]
+                },
+                {
+                    key: 'debts', id: 'chartDebtsProgress', type: 'bar',
+                    labels: debts.length ? debts.map(debt => debt.personName || 'ללא שם') : ['אין תיקי חוב'],
+                    datasets: [
+                        { label: 'יתרה שעדיין חייבים לי (₪)', data: debts.length ? debts.map(debt => debt.type === 'owed_to_me' ? remaining(debt) : 0) : [0], backgroundColor: colors.emerald, borderRadius: 5 },
+                        { label: 'יתרה שאני עדיין חייב (₪)', data: debts.length ? debts.map(debt => debt.type === 'i_owe' ? remaining(debt) : 0) : [0], backgroundColor: colors.rose, borderRadius: 5 }
+                    ]
+                },
+                {
+                    key: 'nw', id: 'chartNetWorthTrend', type: 'bar',
+                    labels: ['יתרות בחשבונות', 'חובות שחייבים לי', 'חובות שאני חייב'],
+                    datasets: [{ label: 'סכום נוכחי (₪)', data: [assets, owedToMe, iOwe], backgroundColor: [colors.blue, colors.emerald, colors.rose], borderRadius: 6 }]
+                }
+            ];
+
+            chartSpecs.forEach(spec => {
+                const canvas = document.getElementById(spec.id);
+                if (!canvas) return;
+                if (charts[spec.key]) {
+                    charts[spec.key].destroy();
+                    delete charts[spec.key];
+                }
+                charts[spec.key] = new Chart(canvas.getContext('2d'), {
+                    type: spec.type,
+                    data: { labels: spec.labels, datasets: spec.datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } },
+                        scales: spec.type === 'bar' ? { y: { beginAtZero: true, ticks: { callback: value => '₪' + Number(value).toLocaleString('he-IL') } } } : undefined
+                    }
+                });
+            });
+        }
+
+        function toggleRepaymentSchedule() {
+            const type = document.getElementById('debtRepaymentType')?.value || 'none';
+            const monthly = document.getElementById('monthlyRepaymentFields');
+            const onceHint = document.getElementById('onceRepaymentHint');
+            if (monthly) monthly.classList.toggle('hidden', type !== 'monthly');
+            if (onceHint) onceHint.classList.toggle('hidden', type !== 'once');
+            const dueDate = document.getElementById('debtDueDate');
+            if (dueDate) dueDate.required = false;
+            const monthlyAmount = document.getElementById('debtMonthlyAmount');
+            if (monthlyAmount) monthlyAmount.required = type === 'monthly';
+        }
+
+        function handleSaveBalances(e) {
+            e.preventDefault();
+            const fields = [['bank', 'בנק'], ['cash', 'מזומן'], ['apps', 'ביט / PayBox'], ['other', 'חשבונות נוספים']];
+            const next = {};
+            for (const [key, label] of fields) {
+                const el = document.getElementById('bal-' + key);
+                const raw = el.value.trim();
+                const v = raw === '' ? 0 : parseAmount(raw, { allowNegative: true });
+                if (v === null) { showToast('סכום לא תקין בשדה: ' + label); el.focus(); return; }
+                next[key] = v;
+            }
+            Object.assign(appState.balances, next);
+            const ok = saveState();
+            closeModal('editBalancesModal');
+            if (ok) showToast('היתרות עודכנו בהצלחה!');
+        }
+
+        function handleAddDebt(e) {
+            e.preventDefault();
+            const form = e.target;
+            const type = form.querySelector('input[name="debtType"]:checked').value;
+            const personName = document.getElementById('debtPersonName').value.trim();
+            const originalAmount = parseAmount(document.getElementById('debtOriginalAmount').value);
+            const startDate = document.getElementById('debtStartDate').value;
+            const dueDate = document.getElementById('debtDueDate').value;
+            const purpose = document.getElementById('debtPurpose').value.trim();
+            const repaymentType = document.getElementById('debtRepaymentType')?.value || (dueDate ? 'once' : 'none');
+            const monthlyAmount = parseAmount(document.getElementById('debtMonthlyAmount')?.value) || 0;
+            const monthlyDay = Number(document.getElementById('debtMonthlyDay')?.value) || 1;
+
+            if (!personName) { showToast('יש להזין שם.'); document.getElementById('debtPersonName').focus(); return; }
+            if (!(originalAmount > 0)) { showToast('יש להזין סכום הלוואה תקין (למשל 5000 או 125.50).'); document.getElementById('debtOriginalAmount').focus(); return; }
+            if (repaymentType === 'monthly' && monthlyAmount <= 0) {
+                showToast('כדי להגדיר החזר חודשי, יש להזין סכום חודשי גדול מאפס.');
+                document.getElementById('debtMonthlyAmount')?.focus();
+                return;
+            }
+            if (repaymentType === 'once' && !dueDate) { showToast('בחרו מועד החזר, או שנו את סוג ההחזר ל"ללא דדליין".'); return; }
+
+            appState.debts.push({
+                id: newId('debt-'),
+                personName,
+                type,
+                originalAmount,
+                startDate,
+                dueDate: repaymentType === 'once' ? dueDate : '',
+                repaymentType,
+                monthlyAmount: repaymentType === 'monthly' ? monthlyAmount : 0,
+                monthlyDay: repaymentType === 'monthly' ? monthlyDay : 1,
+                purpose,
+                payments: []
+            });
+            const ok = saveState();
+            closeModal('addDebtModal');
+            form.reset();
+            toggleRepaymentSchedule();
+            if (ok) showToast('תיק הלוואה חדש נוצר בהצלחה!');
+        }
+
+        function openPaymentModal(debtId) {
+            const debt = appState.debts.find(d => d.id === debtId);
+            if (!debt) return;
+
+            const { paid: totalPaid, remaining } = debtStats(debt);
+
+            document.getElementById('payDebtId').value = debt.id;
+            document.getElementById('payModalTargetTitle').textContent = `תיק הלוואה: ${debt.personName}`;
+            document.getElementById('payModalRemaining').textContent = formatILS(remaining);
+            document.getElementById('payAmount').value = '';
+            document.getElementById('payDate').value = '';
+            document.getElementById('payNote').value = '';
+
+            openModal('addPaymentModal');
+        }
+
+        function handleSavePayment(e) {
+            e.preventDefault();
+            const debt = appState.debts.find(d => d.id === document.getElementById('payDebtId').value);
+            if (!debt) return;
+
+            const amount = parseAmount(document.getElementById('payAmount').value);
+            const date = document.getElementById('payDate').value; // optional: left empty if not chosen
+            const method = document.getElementById('payMethod').value;
+            const note = document.getElementById('payNote').value.trim();
+
+            if (!(amount > 0)) { showToast('יש להזין סכום תשלום תקין (למשל 1000 או 125.50).'); document.getElementById('payAmount').focus(); return; }
+            if (toCents(amount) > toCents(debtStats(debt).remaining)) {
+                showToast('סכום התשלום גבוה מהיתרה שנותרה (' + formatILS(debtStats(debt).remaining) + ').');
+                document.getElementById('payAmount').focus();
+                return;
+            }
+
+            if (!debt.payments) debt.payments = [];
+            debt.payments.push({ id: newId('pay-'), date: isDateStr(date) ? date : '', amount, method, note });
+
+            const ok = saveState();
+            closeModal('addPaymentModal');
+            if (ok) showToast('החזר התשלום נרשם ועודכן במערכת');
+        }
+
+        function promptDeletePayment(debtId, payId) {
+            showConfirm('ביטול החזר', 'לבטל את ההחזר הזה? היתרה בתיק תחושב מחדש.', () => {
+                const debt = appState.debts.find(d => d.id === debtId);
+                if (!debt) return;
+                const idx = (debt.payments || []).findIndex(p => p.id === payId);
+                if (idx < 0) return;
+                const item = debt.payments[idx];
+                debt.payments.splice(idx, 1);
+                const ok = saveState();
+                openDebtHistoryModal(debtId);
+                if (!ok) return;
+                showToast('ההחזר בוטל', () => {
+                    const d = appState.debts.find(x => x.id === debtId);
+                    if (!d) { showToast('לא ניתן לשחזר: התיק נמחק.'); return; }
+                    if (d.payments.some(p => p.id === item.id)) return; // already restored
+                    if (toCents(debtStats(d).paid) + toCents(item.amount) > toCents(d.originalAmount)) {
+                        showToast('לא ניתן לשחזר: הסכום יעלה על סכום ההלוואה.');
+                        return;
+                    }
+                    d.payments.splice(Math.min(idx, d.payments.length), 0, item);
+                    if (saveState()) showToast('ההחזר שוחזר');
+                });
+            });
+        }
+
+        function openDebtHistoryModal(debtId) {
+            const debt = appState.debts.find(d => d.id === debtId);
+            if (!debt) return;
+
+            const { paid: totalPaid, remaining } = debtStats(debt);
+
+            document.getElementById('histModalPerson').textContent = debt.personName;
+            document.getElementById('histModalSub').textContent = `${debt.type === 'owed_to_me' ? 'חייב לי' : 'אני חייב'} - ${debt.purpose || 'הלוואה'}`;
+            document.getElementById('histModalOriginal').textContent = formatILS(debt.originalAmount);
+            document.getElementById('histModalReturned').textContent = formatILS(totalPaid);
+            document.getElementById('histModalRemaining').textContent = formatILS(remaining);
+
+            const sortedPayments = [...(debt.payments || [])].sort(byDateDesc);
+            const list = document.getElementById('histModalPaymentsList');
+
+            if (sortedPayments.length === 0) {
+                list.innerHTML = '<p class="text-xs text-gray-400 py-4 text-center">אין היסטוריית תשלומים לתצוגה</p>';
+            } else {
+                list.innerHTML = sortedPayments.map(p => `
+                    <div class="bg-gray-50 border border-gray-200 p-3 rounded-xl text-xs flex justify-between items-center">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-extrabold text-black">+${formatILS(p.amount)}</span>
+                                <span class="bg-black text-white text-[10px] px-2 py-0.5 rounded-md font-bold">${esc(p.method)}</span>
+                            </div>
+                            ${p.note ? `<p class="text-[11px] text-gray-500 mt-0.5">${esc(p.note)}</p>` : ''}
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="text-left text-gray-500 font-semibold">${formatDate(p.date)}</div>
+                            <button onclick="promptDeletePayment('${esc(debt.id)}', '${esc(p.id)}')" class="text-gray-400 hover:text-black p-1 transition" title="ביטול החזר">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            openModal('debtHistoryModal');
+        }
+
+        function promptDeleteDebt(id) {
+            showConfirm('מחיקת תיק הלוואה', 'האם אתה בטוח שברצונך למחוק תיק הלוואה זה, כולל כל ההחזרים שנרשמו בו?', () => {
+                const idx = appState.debts.findIndex(d => d.id === id);
+                if (idx < 0) return;
+                const item = appState.debts[idx];
+                appState.debts.splice(idx, 1);
+                if (!saveState()) return;
+                showToast('התיק נמחק', () => {
+                    if (appState.debts.some(d => d.id === item.id)) return; // already restored
+                    appState.debts.splice(Math.min(idx, appState.debts.length), 0, item);
+                    if (saveState()) showToast('התיק שוחזר עם כל ההחזרים');
+                });
+            });
+        }
+
+        function handleAddExpense(e) {
+            e.preventDefault();
+            const form = e.target;
+            const type = form.querySelector('input[name="expType"]:checked').value;
+            const title = document.getElementById('expTitle').value.trim();
+            const amount = parseAmount(document.getElementById('expAmount').value);
+            const category = document.getElementById('expCategory').value;
+
+            if (!title) { showToast('יש להזין תיאור להוצאה.'); document.getElementById('expTitle').focus(); return; }
+            if (!(amount > 0)) { showToast('יש להזין סכום תקין (למשל 250 או 125.50).'); document.getElementById('expAmount').focus(); return; }
+
+            appState.expenses.push({ id: newId('exp-'), title, amount, type, category, date: todayStr() });
+            const ok = saveState();
+            closeModal('addExpenseModal');
+            form.reset();
+            if (ok) showToast('ההוצאה נוספה בהצלחה');
+        }
+
+        function deleteExpense(id) {
+            showConfirm('מחיקת הוצאה', 'למחוק את ההוצאה?', () => {
+                const idx = appState.expenses.findIndex(e => e.id === id);
+                if (idx < 0) return;
+                const item = appState.expenses[idx];
+                appState.expenses.splice(idx, 1);
+                if (!saveState()) return;
+                showToast('ההוצאה הוסרה', () => {
+                    if (appState.expenses.some(e => e.id === item.id)) return; // already restored
+                    appState.expenses.splice(Math.min(idx, appState.expenses.length), 0, item);
+                    if (saveState()) showToast('ההוצאה שוחזרה');
+                });
+            });
+        }
+
+        function csvCell(v) {
+            let t = String(v === null || v === undefined ? '' : v);
+            if (/^[=+\-@\t\r]/.test(t) && isNaN(Number(t))) t = "'" + t; // block spreadsheet formula injection
+            return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+        }
+
+        function exportDataCSV() {
+            const rows = [['סוג נתון', 'שם/תיאור', 'סכום מקורי/יתרה', 'הוחזר/סוג', 'תאריך/הערה']];
+            const b = appState.balances;
+            rows.push(['יתרה', 'בנק', b.bank, '-', '-'], ['יתרה', 'מזומן', b.cash, '-', '-'],
+                      ['יתרה', 'ביט/PayBox', b.apps, '-', '-'], ['יתרה', 'חשבונות נוספים', b.other, '-', '-']);
+            appState.debts.forEach(d => {
+                const st = debtStats(d);
+                rows.push([d.type === 'owed_to_me' ? 'חוב/הלוואה - חייבים לי' : 'חוב/הלוואה - אני חייב', d.personName, d.originalAmount, st.paid, d.purpose || '']);
+                (d.payments || []).slice().sort(byDateDesc).forEach(p => {
+                    rows.push(['החזר', d.personName, p.amount, p.method, [p.date || 'ללא תאריך', p.note].filter(Boolean).join(' | ')]);
+                });
+            });
+            appState.expenses.forEach(e => {
+                rows.push(['הוצאה', e.title, e.amount, e.type === 'fixed' ? 'קבועה' : 'חד פעמית', [e.category, e.date].filter(Boolean).join(' | ')]);
+            });
+            const csvContent = '\uFEFF' + rows.map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+            triggerDownload(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }), `Clear_Balance_Export_${todayStr()}.csv`);
+            showToast('הנתונים יוצאו לקובץ CSV');
+        }
+
+        function triggerDownload(blob, filename) {
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+
+        function downloadBackup() {
+            const payload = { app: 'clear-balance', version: 1, exportedAt: new Date().toISOString(), data: appState };
+            triggerDownload(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), `Clear_Balance_Backup_${todayStr()}.json`);
+            showToast('הגיבוי הורד. שמרו אותו במקום בטוח.');
+        }
+
+        function handleRestoreFile(e) {
+            const file = e.target.files && e.target.files[0];
+            e.target.value = '';
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) { showToast('הקובץ גדול מדי לגיבוי תקין.'); return; }
+            const reader = new FileReader();
+            reader.onerror = () => showToast('לא ניתן לקרוא את הקובץ.');
+            reader.onload = () => {
+                let parsed;
+                try { parsed = JSON.parse(String(reader.result)); } catch (err) { showToast('הקובץ פגום או אינו קובץ גיבוי תקין. הנתונים הקיימים לא שונו.'); return; }
+                const data = (parsed && parsed.app === 'clear-balance' && parsed.data) ? parsed.data : parsed;
+                if (!data || typeof data !== 'object' || !data.balances || !Array.isArray(data.debts) || !Array.isArray(data.expenses)) {
+                    showToast('הקובץ אינו קובץ גיבוי של Clear Balance. הנתונים הקיימים לא שונו.');
+                    return;
+                }
+                const next = normalizeState(data);
+                if (!next) { showToast('הקובץ אינו תקין. הנתונים הקיימים לא שונו.'); return; }
+                showConfirm('שחזור מגיבוי', `לשחזר ${next.debts.length} תיקי חוב ו-${next.expenses.length} הוצאות? הנתונים הנוכחיים יוחלפו (עותק שלהם יישמר בדפדפן).`, () => {
+                    try { localStorage.setItem(STORAGE_KEY + '_before_restore', JSON.stringify(appState)); }
+                    catch (err) { showToast('לא ניתן לשמור עותק ביטחון, השחזור בוטל.'); return; }
+                    appState = next;
+                    closeModal('authModal');
+                    if (saveState()) showToast('הנתונים שוחזרו בהצלחה');
+                });
+            };
+            reader.readAsText(file);
+        }
+
+        function renderAll() {
+            renderOverview();
+            renderDebts();
+            renderExpenses();
+            renderCharts();
+        }
+
+        // Explicitly expose handlers used by inline controls, including installed mobile PWA mode.
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+        window.switchTab = switchTab;
+        window.filterDebts = filterDebts;
+        window.handleSaveBalances = handleSaveBalances;
+        window.handleAddDebt = handleAddDebt;
+        window.toggleRepaymentSchedule = toggleRepaymentSchedule;
+        window.openPaymentModal = openPaymentModal;
+        window.promptDeleteDebt = promptDeleteDebt;
+        window.openDebtHistoryModal = openDebtHistoryModal;
+        window.handleAddExpense = handleAddExpense;
+        window.deleteExpense = deleteExpense;
+        window.exportDataCSV = exportDataCSV;
+        window.downloadBackup = downloadBackup;
+        window.handleRestoreFile = handleRestoreFile;
+        window.promptDeletePayment = promptDeletePayment;
+
+        window.onload = function() {
+            renderAll();
+        };
+
+        // Keep this tab in sync if the data was changed from another tab.
+        window.addEventListener('storage', e => {
+            if (e.key === STORAGE_KEY) { appState = loadAppState(); renderAll(); }
+        });
+    </script>
+</body>
+</html>
